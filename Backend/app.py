@@ -1,0 +1,139 @@
+# Import necessary libraries
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
+import pandas as pd
+import numpy as np
+import pickle
+from sklearn.metrics.pairwise import cosine_similarity
+import gensim.models.keyedvectors as word2vec
+import string
+import nltk
+from nltk.corpus import stopwords
+from spellchecker import SpellChecker
+
+# Download necessary NLTK data
+nltk.download('averaged_perceptron_tagger')
+nltk.download('stopwords')
+ENGLISH_STOP_WORDS = stopwords.words('english')
+stemmer = nltk.stem.PorterStemmer()
+
+# Initialize Flask app
+app = Flask(__name__)
+CORS(app)
+
+# Initialize spellchecker
+spell = SpellChecker()
+
+# Function to tokenize the recipe input
+def recipe_tokenizer(sentence):
+    # Remove punctuation and set to lower case
+    for punctuation_mark in string.punctuation:
+        sentence = sentence.replace(punctuation_mark, '').lower()
+
+    # Split sentence into words
+    listofwords = sentence.split(' ')
+    listofstemmed_words = []
+
+    # Remove stopwords and stem words
+    for word in listofwords:
+        if (word not in ENGLISH_STOP_WORDS) and (word != ''):
+            # Stem words
+            stemmed_word = stemmer.stem(word)
+            listofstemmed_words.append(stemmed_word)
+
+    return listofstemmed_words
+
+# Function to load the combined embeddings and TF-IDF vectorizer model
+def load_embeddings_and_vectorizer():
+    with open('input/combined_embeddings.pkl', 'rb') as f:
+        combined_embeddings = pickle.load(f)
+    with open('input/tfidf_vectorizer.pkl', 'rb') as f:
+        vectorizer = pickle.load(f)
+    return combined_embeddings, vectorizer  
+
+# Function to find similar recipes and return Title, Ingredients (as a list), and Instructions
+def find_similar_recipes(sampled_data, user_input, num_similar=3):
+    try:
+        # Load the combined embeddings and TF-IDF vectorizer
+        combined_embeddings, vectorizer = load_embeddings_and_vectorizer()
+    except FileNotFoundError:
+        return "Embeddings and vectorizer not found, please precompute embeddings first.", 500
+
+    # Process the user input (ingredient list)
+    user_input = user_input.lower()
+    user_data = pd.DataFrame({'text_data': [user_input]})
+
+    # Vectorize the user input
+    user_vectorized_data = vectorizer.transform(user_data['text_data'])
+
+    # Ensure the number of features in user_vectorized_data matches combined_embeddings
+    num_missing_features = combined_embeddings.shape[1] - user_vectorized_data.shape[1]
+    if num_missing_features > 0:
+        # Add zero columns to match feature sizes
+        user_vectorized_data = np.pad(user_vectorized_data.toarray(), ((0, 0), (0, num_missing_features)))
+
+     # Apply ingredient weighting
+    ingredient_weight = 0.8
+    text_weight = 0.2
+    user_combined_embeddings = np.concatenate([user_vectorized_data * text_weight, np.zeros((1, 100))], axis=1)
+
+    # Compute cosine similarity between the user input and combined embeddings
+    cosine_sim_matrix = cosine_similarity(user_vectorized_data, combined_embeddings)
+
+    # Get indices of the top similar recipes
+    similar_recipes = cosine_sim_matrix[0].argsort()[::-1][:num_similar]
+
+    # Fetch titles, ingredients, and instructions for the top similar recipes
+    similar_recipe_info = sampled_data.iloc[similar_recipes][['Title', 'Ingredients', 'Instructions']]
+
+    # Split ingredients into list if they are stored as a string (assuming comma-separated)
+    similar_recipe_info['Ingredients'] = similar_recipe_info['Ingredients'].apply(lambda x: x.split(','))
+
+    return similar_recipe_info
+
+
+def is_valid_input(user_input):
+    tokenized_input = recipe_tokenizer(user_input)
+    
+    # Check if the tokenized input is empty
+    if not tokenized_input:
+        return False
+
+    # Spell-check validation
+    misspelled = spell.unknown(tokenized_input)
+    
+    # If more than half of the words are misspelled, consider it invalid input
+    if len(misspelled) > len(tokenized_input) * 0.5:
+        return False
+    return True
+
+
+@app.route('/recommend', methods=['POST'])
+def recommend():
+    user_input = request.form.get('ingredients', '')
+
+    if not is_valid_input(user_input):
+        return jsonify({"message": "Input doesn't contain recognizable ingredients. Please enter valid ingredients."}), 400
+
+    try:
+        with open('input/sampled_data.pkl', 'rb') as f:
+            sampled_data = pickle.load(f)
+    except FileNotFoundError:
+        return jsonify({"message": "Sampled data not found, please upload the correct file."}), 500
+
+    if user_input:
+        recommendations = find_similar_recipes(sampled_data, user_input)
+
+        if not recommendations.empty:
+            recommendations_list = recommendations.to_dict(orient='records')
+            return jsonify(recommendations_list)
+        else:
+            return jsonify({"message": "No recommendations found. Try entering different ingredients."}), 404
+
+    return jsonify({"message": "Please provide valid input."}), 400
+
+
+
+# Run the Flask app
+if __name__ == "__main__":
+    app.run(debug=True)
