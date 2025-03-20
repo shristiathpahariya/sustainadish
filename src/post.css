@@ -1,0 +1,99 @@
+.posts-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 3%;
+  padding-left: 15%;
+  padding-right: 15%;
+}
+
+.post-card {
+  width: 20%;
+  height: auto;
+  border: 1px solid #ddd;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 6px rgba(1, 0, 0, 0.1);
+}
+
+.postshead {
+  width: 100%;
+  text-align: center;
+  text-decoration: underline;
+  text-decoration-color: coral;
+}
+
+.post-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.post-details {
+  padding: 10px;
+}
+
+.post-details p {
+  margin: 5px 0;
+}
+
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.popup-content {
+  background: #fff;
+  border-radius: 2px;
+  padding: 12px;
+  width: 80%;
+  max-width: 450px;
+  position: relative;
+  background-color: #f1f9e2;
+}
+
+.popup-content p {
+  font-size: 20px;
+  font-weight: 100;
+  color: #656363;
+  text-align: left;
+}
+.popup-content h1 {
+  font-size: 15px;
+  font-weight: 100;
+  color: #444646;
+}
+
+.popup-image {
+  width: 100%;
+  border-radius: 2px;
+}
+
+.popup-details {
+  margin-top: 20px;
+}
+
+.close-btn {
+  background: #ff5555;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  cursor: pointer;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.close-btn:hover {
+  background: #ff2222;
+}

@@ -1,0 +1,166 @@
+.feedback-form {
+  background: linear-gradient(
+    to bottom,
+    #afffe7 0%,
+    #e7faf0 20%,
+    #e4faed 16%,
+    #e1f9ea 24%,
+    #ddf9e5 34%,
+    #dbf9e2 40%,
+    #d6f8dd 50%,
+    #d3f8d9 59%,
+    #cff8d5 68%,
+    #ccf8d1 75%,
+    #c7f7ca 89%,
+    #c2f7c5 100%
+  );
+  padding: 60px;
+  border-radius: 50px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+  width: 1200px;
+  height: 95%;
+  text-align: center;
+  position: relative; /* Ensure the form container is positioned */
+  position: relative;
+  z-index: 1;
+  margin-top: 58px;
+  margin-left: 10%;
+  background-size: cover; /* Ensure it scales properly */
+}
+.feedback-form h2 {
+  font-size: 15px;
+  font-weight: bold;
+}
+
+/* Close button for the feedback form */
+.close-form-button {
+  position: absolute;
+  top: 40px;
+  right: 40px;
+  font-size: 24px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: #333;
+  transition: color 0.3s;
+  outline: none;
+  padding: 0;
+  z-index: 2; /* Ensure it’s above other content */
+}
+
+.close-form-button:hover {
+  color: #3c9e67; /* Optional: Change color on hover */
+}
+
+.close-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 30px;
+}
+
+/* Hide the feedback form */
+.hidden {
+  display: none;
+}
+
+/* Stars styling */
+.stars {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 15px;
+  position: relative;
+}
+
+.stars input[type="radio"] {
+  display: none;
+}
+
+.stars label {
+  font-size: 50px;
+  color: #d0d4c4e1;
+  padding: 0 5px;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+  text-shadow: 1px 0px 0 #0000000c, 1px 1px 0 #0000006a, 1px 1px 0 #0000003b,
+    1px 1px 0 #0000004d;
+}
+
+.stars input[type="radio"]:checked ~ label,
+.stars label:hover,
+.stars label:hover ~ label {
+  color: #f5a623;
+}
+
+.stars label:hover {
+  transform: scale(1.2);
+}
+
+/* Textarea styling */
+textarea {
+  width: 90%;
+  height: 150px;
+  padding: 20px;
+  resize: none;
+  margin-bottom: 20px;
+  margin-top: 30px;
+  color: black;
+  background-color: #f1f9e2;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08),
+    inset 0 4px 6px rgba(0, 0, 0, 0.1); /* Added inner shadow */
+  z-index: 1; /* Ensure the textarea is below the button */
+  position: relative; /* Ensure it respects z-index */
+  transition: background-color 0.3s ease; /* Smooth transition */
+  border: 0px solid #ac9f9f; /* Add a border */
+}
+
+textarea:focus {
+  background-color: #f1f9e2; /* Black background */
+  color: black; /* White text */
+  outline: none; /* Remove default outline */
+  border-color: grey;
+}
+
+/* Submit button styling */
+.button-wrapper {
+  display: flex;
+  justify-content: center; /* Centers the button horizontally */
+  margin-top: 20px; /* Adjust if necessary */
+}
+
+.submit {
+  background-color: #3baea0;
+  color: rgb(255, 255, 255);
+  padding: 12px 25px; /* Increase the padding for a larger button */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 20px 0; /* Add some margin for spacing */
+  display: block; /* Ensure the button behaves as a block element */
+  width: 200px; /* Set a fixed width for the button */
+  text-align: center; /* Center text inside the button */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+  position: relative; /* Ensure the button is positioned properly */
+  z-index: 2;
+}
+.submit:hover {
+  background-color: rgb(109, 183, 175);
+}
+.feedback-close-button {
+  position: absolute;
+  top: 40px;
+  right: 40px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #333;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.feedback-close-button:hover {
+  color: #50c78b; /* Change color on hover */
+}

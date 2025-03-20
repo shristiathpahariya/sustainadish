@@ -1,0 +1,45 @@
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.aboutcontainer {
+  padding: 20px;
+  background: linear-gradient(#b9f4df, #ffffff);
+  overflow-x: hidden;
+}
+
+.aboutcontainer h2 {
+  text-align: center;
+  font-size: larger;
+  font-weight: bolder;
+  padding: 20px 20px;
+}
+
+.aboutcontainer p {
+  text-align: center;
+  line-height: 25px;
+}
+
+.team {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+}
+
+.team-member {
+  text-align: center;
+}
+
+.team-member img {
+  height: 80%;
+  width: 90%;
+  border-radius: 10px;
+  object-fit: cover;
+  padding-top: 20px;
+}
+
+.team-member h3 {
+  margin-top: 10px;
+  font-size: 18px;
+}

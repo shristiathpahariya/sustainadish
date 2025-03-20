@@ -1,0 +1,85 @@
+.privacylogo {
+  width: 9%;
+  margin-left: 15px;
+}
+
+.privacy-policy-container {
+  padding: 10px;
+  font-family: "Arial", sans-serif;
+  background-color: #e8f5f2;
+  background-image: linear-gradient(#b9f4df, #ffffff);
+  overflow-x: hidden;
+  margin: 0;
+  padding-bottom: 20px;
+}
+
+.privacy-policy-title {
+  font-size: 20px;
+  font-weight: bold;
+  padding-top: 15px;
+}
+.privacy-policy-title {
+  text-align: left;
+  color: black;
+  margin-left: 15px;
+}
+
+h2 {
+  color: black;
+  display: block;
+  font-size: 1.17em;
+  font-weight: bold;
+  unicode-bidi: isolate;
+  margin-left: 5px;
+  margin-left: 15px;
+}
+
+.privacy-policy-container h3 {
+  color: black;
+  margin-left: 15px;
+  margin-bottom: 15px;
+}
+
+.privacy-policy-container p {
+  color: black;
+  line-height: 1.6;
+  margin-left: 15px;
+  margin-bottom: 15px;
+}
+
+.privacy-policy-container a {
+  color: black;
+  text-decoration: none;
+  margin-left: 15px;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+.privacy-policy-title + p {
+  font-size: 1.2em; /* Slightly smaller than the title */
+  color: #555; /* Lighter color for the date */
+  padding-top: 0px; /* Remove margin at the top */
+}
+.privacy-policy-container h2 {
+  font-size: 1.8em; /* Decreased font size */
+  font-weight: bold; /* Keep the text bold */
+  color: #333; /* Dark color for the text */
+  text-align: left; /* Center the text */
+  margin-top: 30px; /* Space above */
+  margin-bottom: 20px; /* Space below */
+  font-family: "Arial", sans-serif; /* Clean sans-serif font */
+}
+.privacy-policy-container a {
+  color: #26925e; /* Set the link color to blue */
+  text-decoration: none; /* Remove underline */
+  /* Make the text bold */
+  font-size: 1em; /* Adjust font size */
+  transition: color 0.3s ease; /* Smooth transition for color change on hover */
+  margin-left: 2px;
+}
+
+.privacy-policy-container a:hover {
+  color: #46ce71; /* Darker blue color on hover */
+  text-decoration: underline; /* Underline the text on hover */
+}

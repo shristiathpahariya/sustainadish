@@ -1,0 +1,187 @@
+#root {
+  width: 100%;
+}
+.signup_container {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  justify-content: center;
+  align-items: center;
+  background-color: #ffffff;
+  min-height: 100vh;
+  box-shadow: 0px 3px -2px rgba(0, 0, 0, 0.2), 0px 3px 4px rgba(0, 0, 0, 0.14),
+    0px 1px 8px rgba(0, 0, 0, 0.12);
+}
+
+.signup_form_container {
+  display: flex;
+  width: 100%;
+  height: auto;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  align-content: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+.left {
+  width: 0%;
+  padding: 100px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background-color: white;
+  flex: 1;
+  border-bottom-left-radius: 7px;
+  border-top-right-radius: 7px;
+}
+
+.right {
+  width: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #ffffff;
+}
+
+.signinCont {
+  flex: 1;
+  background: beige;
+  border-radius: 7px;
+  color: #000;
+  padding: 100px 40px;
+}
+
+.signup_image {
+  /* width: 95%; */
+  width: 100%;
+  height: auto;
+  border-radius: 7px;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  background-color: rgb(241, 237, 237);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-size: 18px;
+  color: #121212;
+  outline: none;
+}
+
+.name_input {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.name_input .input {
+  width: 80%;
+}
+
+.orange_btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #ff9800;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  margin-top: 20px;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.google_btn {
+  width: 100%;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgb(226, 226, 226);
+  color: #000;
+  border: 1px solid #ddd;
+  margin-top: 20px;
+  border-radius: 8px;
+  font-size: 20px;
+}
+
+.google_btn img {
+  width: 26px;
+  margin-right: 10px;
+}
+
+.separator {
+  text-align: center;
+  margin: 20px 0;
+  position: relative;
+}
+
+.separator span {
+  background: white;
+  padding: 0 10px;
+  position: relative;
+  z-index: 1;
+  color: #888;
+}
+
+.separator::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #bababa;
+  z-index: 0;
+}
+
+.error_msg {
+  color: red;
+  font-size: 0.9rem;
+  margin: 10px 0;
+}
+
+/* Added box around login */
+.login_prompt {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.login_link {
+  color: #347b43;
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.left {
+  padding-right: 50px;
+}
+
+.terms_link {
+  color: #44634b;
+}
+.inputcheck {
+  display: flex;
+  align-items: center; /* Aligns items vertically */
+  right: 80px;
+  margin-top: 3%;
+}
+
+.checkbox {
+  margin-right: -180px; /* Adds space between the checkbox and text */
+}
+
+.conditions {
+  margin: 0; /* Removes extra margin or padding from the <p> */
+}

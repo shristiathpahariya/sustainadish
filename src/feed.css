@@ -1,0 +1,155 @@
+.feed-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+}
+
+.feed-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 90%;
+  max-width: 800px;
+  background: lightyellow; /* Light green background for card */
+  border-radius: 15px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  height: 300px; /* Fixed height for all posts */
+  flex-direction: row;
+}
+
+.feed-image {
+  width: 40%; /* Fixed width for the image container */
+  height: 100%; /* Match the fixed height of the card */
+  object-fit: cover; /* Ensure the image fits proportionally without distortion */
+  padding-left: 7px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  padding-right: 7px;
+  border-radius: 18px;
+}
+
+.feed-details {
+  flex: 1;
+  margin-left: 20px; /* Space between image and text */
+  padding-right: 10px;
+  height: 100%; /* Match the height of the card */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Center-align the text within the details section */
+  overflow: hidden;
+  color: grey;
+}
+
+.feed-details p {
+  margin: 5px 0;
+}
+
+@media (max-width: 768px) {
+  .feed-card {
+    width: 100%; /* Ensure the card adjusts to the screen width */
+    height: 300px; /* Maintain consistent height across all screen sizes */
+  }
+
+  .feed-image {
+    width: 40%; /* Keep the image width fixed */
+    height: 100%; /* Maintain the same height as the card */
+  }
+
+  .feed-details {
+    margin-left: 20px; /* Maintain spacing between the image and text */
+    padding-right: 10px;
+  }
+}
+
+.feed-details p {
+  margin: 10px 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.feed-details p strong {
+  color: darkgreen;
+}
+
+.icon {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #ffa500;
+  border-radius: 50%;
+  padding: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.icon img {
+  width: 30px;
+  height: 30px;
+}
+
+.loader {
+  width: 48px;
+  height: 48px;
+  margin: auto;
+  position: relative;
+}
+
+.loader:before {
+  content: "";
+  width: 48px;
+  height: 5px;
+  background: #ffd700;
+  position: absolute;
+  top: 60px;
+  left: 0;
+  border-radius: 50%;
+  animation: shadow324 0.5s linear infinite;
+}
+
+.loader:after {
+  content: "";
+  width: 100%;
+  height: 100%;
+  background: #ffd700;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  animation: jump7456 0.5s linear infinite;
+}
+
+@keyframes jump7456 {
+  15% {
+    border-bottom-right-radius: 50%;
+  }
+
+  25% {
+    transform: translateY(9px) rotate(22.5deg);
+  }
+
+  50% {
+    transform: translateY(18px) scale(1, 0.9) rotate(45deg);
+    border-bottom-right-radius: 40px;
+  }
+
+  75% {
+    transform: translateY(9px) rotate(67.5deg);
+  }
+
+  100% {
+    transform: translateY(0) rotate(90deg);
+  }
+}
+
+@keyframes shadow324 {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+
+  50% {
+    transform: scale(1.2, 1);
+  }
+}

@@ -1,0 +1,122 @@
+.donation-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  background-color: #e1eedf;
+}
+
+.donation-logo {
+  display: block; /* Treat the logo as a block element */
+  margin: 0 auto; /* Center horizontally */
+  width: 25%;
+  height: auto; /* Maintain aspect ratio */
+}
+
+.donation-form-header h1 {
+  color: white;
+  text-align: center;
+  background-color: #3baea0;
+  padding: 15px 150px;
+  border-radius: 20px;
+  font-size: 1.5rem;
+  margin: 0;
+  margin-top: 30px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.donation-form-container {
+  border-radius: 20px;
+  background-color: white;
+  padding: 40px;
+  max-width: 800px;
+  width: 100%;
+  margin: 20px auto;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+}
+
+.donation-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.donation-form label {
+  display: block;
+  margin-bottom: 20px;
+  margin-top: 10px;
+  color: #3baea0;
+}
+
+.donation-form input[type="text"],
+.donation-form input[type="email"],
+.donation-form input[type="number"],
+.donation-form input[type="date"],
+.donation-form input[type="file"],
+.donation-form textarea {
+  width: 100%;
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 15px;
+  box-sizing: border-box;
+  color: black;
+  resize: none;
+}
+
+.donation-form textarea {
+  height: 180px;
+  resize: none;
+}
+
+.donation-form button {
+  background-color: #3baea0;
+  color: white;
+  border: none;
+  padding: 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.donation-form button:hover {
+  background-color: #45a049;
+}
+.thankyou-message {
+  color: #3baea0;
+  font-size: 18px;
+  text-align: left;
+  margin-bottom: 20px;
+}
+.donor-info {
+  color: #3baea0;
+  padding-bottom: 16px;
+  text-decoration: underline;
+}
+.checkbox-container {
+  display: block;
+  margin-bottom: 10px;
+  margin-top: 20px;
+  color: #3baea0;
+}
+/* Move the checkbox to the left */
+label input[type="checkbox"] {
+  margin-left: -295px; /* Adjust the negative value to move it further left */
+}
+.anonymous-text {
+  /* Allows positioning of the text */
+  left: -290px; /* Moves the text to the left */
+}
+.item-info {
+  color: #3baea0;
+  padding-bottom: 16px;
+  text-decoration: underline;
+  padding-top: 20px;
+}
+label {
+  position: relative; /* Allows positioning of the text */
+  left: 5px; /* Moves the text to the left */
+}

@@ -1,0 +1,237 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0; /* Removes default body margin */
+  padding: 0;
+}
+
+.edit-profile-container {
+  background: linear-gradient(to bottom, #b7eed6 0%, #69887a 100%);
+  height: 100vh; /* Ensures the container covers the full viewport height */
+  width: 100vw; /* Ensures the container covers the full viewport width */
+}
+
+.edit-container {
+  background: linear-gradient(to bottom, #ffffff 44%, #b7eed6 100%);
+  height: 80%; /* Ensures the container covers the full viewport height */
+  width: 100%; /* Ensures the container covers the full viewport width */
+  display: flex;
+  z-index: 2;
+  position: absolute;
+  bottom: 0px;
+  border-radius: 15px;
+  padding-right: 30px;
+}
+.edit-profile-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  padding-left: 33px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  width: 48%;
+}
+
+.form-group.full-width {
+  width: 1000%;
+}
+
+label {
+  margin-bottom: 15px;
+  font-size: 15px;
+  color: #333;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+input {
+  padding: 10px;
+  border-radius: 20px;
+  border: 1px solid #f0f3fc;
+  background-color: #f0f3fc;
+  width: 85%;
+}
+
+input:focus {
+  border-color: #98e0c7; /* Change this to your desired focus border color */
+  outline: none; /* Removes the default outline */
+}
+.form-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.cancel-btn,
+.update-btn {
+  padding: 10px 20px;
+  border-radius: 15px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  border: 1px solid #98e0c7;
+  background-color: white;
+  color: black;
+  width: 125px;
+}
+
+.update-btn {
+  background-color: #98e0c7;
+  color: white;
+  border: none;
+  width: 125px;
+}
+
+.cancel-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.update-btn:hover {
+  background-color: #82d1b3;
+}
+
+.profile-box {
+  background-color: white;
+  width: 500vh;
+  left: 15%;
+  margin-top: -50px;
+  padding-top: 85px;
+  padding-left: 20px;
+  padding-right: 20px;
+  margin-bottom: 35px;
+
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  height: 60vh;
+}
+#email-input {
+  width: 93%; /* Set a custom width for the email input field */
+}
+
+.vectorimg {
+  position: absolute;
+  width: 450px;
+  height: 457px;
+  top: 24%;
+  z-index: -1;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.543); /* Slightly darker overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff; /* White background for the modal */
+  padding: 40px 30px;
+  border-radius: 12px;
+  text-align: center;
+  width: 350px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  font-size: 12px;
+  padding-bottom: 25px;
+}
+
+.sure-model {
+  font-size: 15px;
+  margin-bottom: 15px;
+  transform: translateY(-10px); /* Moves the text up */
+}
+
+.modal-button {
+  display: flex;
+  justify-content: space-between;
+}
+
+.modal-confirm {
+  padding: 10px 25px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  background-color: #d9d9d9; /* Gray color for 'Yes' */
+  color: black;
+  margin-right: 20px;
+}
+
+.modal-cancel {
+  padding: 10px 25px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  background-color: #cccccc; /* Green color for 'No' */
+  color: black;
+}
+
+.modal-confirm:hover,
+.modal-cancel:hover {
+  opacity: 0.8;
+  background-color: #6fcf97;
+}
+.logout-btn {
+  padding: 15px 25px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  background-color: #d9d9d9;
+  color: black;
+  margin-left: 300px; /* Moves it further to the right */
+  margin-top: 110px; /* Moves it a bit further down */
+  background-color: #42b18a;
+  color: white;
+  border: none;
+  width: 150px;
+}
+
+.logout-btn:hover {
+  opacity: 0.8;
+  background-color: #42b18aeb; /* Matches the hover effect for consistency */
+}
+.logout-img {
+  margin-left: -52px;
+  margin-bottom: -5px;
+  width: 20px;
+  height: 20px;
+}
+.logout-text {
+  position: relative;
+  left: -9px; /* Move the text to the left */
+  /* You can adjust this value to move the text as you need */
+}
+.logout-btn {
+  background: #42b18a;
+  width: 25%;
+  height: 7%;
+  text-align: center;
+  align-content: center;
+  top: 55%;
+  right: 45%;
+  font-size: small;
+}

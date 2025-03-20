@@ -1,0 +1,288 @@
+.container {
+  display: flex;
+  flex-direction: row; /* Maintain flex layout for children */
+  min-height: 100vh; /* Allow the container to grow vertically if needed */
+  width: 100vw;
+  max-width: 1690px;
+  box-shadow: 30 10px 30px rgba(0, 0, 0, 0.1);
+  background-color: white;
+  /* border-radius: 0px 20px 20px 0px; */
+}
+
+.contact-info {
+  background-color: #ff9800;
+  color: rgb(255, 255, 255);
+  padding: 10px;
+  width: 30%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  position: relative;
+  border-radius: 0px 20px 20px 0px;
+  font-size: 20px;
+  margin-left: 0px;
+}
+
+.lovetohelp {
+  font-size: xx-large;
+  margin-left: 0%;
+  margin-top: 4%;
+}
+
+.reachtohelp {
+  font-weight: normal;
+  margin-bottom: 5%;
+  margin-left: 0%;
+}
+
+.contact-info h2 {
+  color: #fff;
+  font-size: 30px; /* Adjust font size to your preference */
+  margin-bottom: 30px; /* Add spacing for better visual balance */
+  margin-left: 20px; /* Center the heading for a clean layout */
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 13px;
+  padding-top: 4%;
+}
+
+.info-header {
+  margin-top: 10%;
+  font-size: 5px;
+}
+
+.info-item p {
+  color: #fff;
+  text-decoration: none;
+  display: inline-block;
+  align-items: center;
+  margin-left: 20px; /* Adjust spacing between icon and text */
+  margin-bottom: 0px;
+  transform: translateY(-6px); /* Moves the text slightly upwards */
+}
+
+.info-item-img {
+  width: 30px;
+  height: 30px;
+  margin-left: 15px;
+}
+
+.contact-form {
+  padding: 20px;
+  width: 60%;
+  flex-direction: column;
+  display: flex;
+  justify-content: flex-start;
+  position: relative;
+  margin-left: 20px;
+}
+
+#contactForm {
+  margin-left: 10%;
+}
+
+.close-btn {
+  background-color: #f8f8f8;
+  border: none;
+  font-size: 30px;
+  cursor: pointer;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.contact-form h2 {
+  align-self: flex-start;
+  align-items: center;
+}
+
+.contact-form h4 {
+  margin-top: 20px;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.contact-form button {
+  background-color: #ff9800;
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 12px;
+  cursor: pointer;
+  width: 300px;
+  font-size: 16px;
+  margin: 20px 0;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.contact-form button:hover {
+  background-color: #e68900;
+}
+
+/* Ensure First Name and Last Name are side by side */
+.name-fields {
+  display: flex; /* Use flex layout */
+  padding-top: 20px;
+  gap: 60px; /* Space between the fields */
+  width: 105%; /* Full width of the container */
+  margin-bottom: 10px; /* Space below the name fields */
+}
+
+.name-fields input {
+  width: 60%; /* Ensure both inputs take up about half the width each */
+  height: 50px; /* Adjust height */
+  padding: 10px; /* Adjust padding */
+  border-radius: 20px;
+  background-color: #f1f4fe;
+  border: none;
+  box-sizing: border-box; /* Include padding in width calculation */
+}
+
+/* Contact Fields (Contact, Location) - Styled like the Name Fields */
+.contact-fields {
+  display: flex; /* Use flex layout for side-by-side fields */
+  gap: 60px; /* Space between the fields */
+  width: 105.5%; /* Full width of the container */
+  margin-bottom: 15px; /* Space below the fields */
+}
+
+.contact-fields input {
+  width: 60%; /* Ensure both inputs take up about half the width each */
+  height: 50px; /* Adjust height */
+  padding: 15px; /* Adjust padding */
+  border-radius: 20px;
+  background-color: #f1f4fe;
+  border: none;
+  box-sizing: border-box; /* Include padding in width calculation */
+}
+
+/* Contact Form adjustments */
+.contact-form input,
+.contact-form textarea {
+  margin-bottom: 25px;
+  padding: 20px;
+  border: 0px solid #ccc;
+  border-radius: 20px;
+  background-color: #f1f4fe;
+  width: 120%;
+  box-shadow: none;
+  resize: none;
+  margin-left: -25px;
+  height: 50px;
+  gap: 20px;
+  margin-top: -15px;
+}
+
+/* Styling for the checkbox and label */
+.terms-container {
+  display: flex;
+  align-items: center; /* Ensure checkbox and text are vertically centered */
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.terms-container input[type="checkbox"] {
+  margin-right: 15px; /* Space between checkbox and text */
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.terms-container label {
+  cursor: pointer;
+  color: #333;
+  margin-right: 10px;
+}
+
+.terms-container input[type="checkbox"]:checked + label {
+  color: #ff9800; /* Color change when checkbox is checked */
+}
+
+#contactForm input[type="email"] {
+  margin-bottom: 40px;
+  margin-top: -20px;
+  padding: 20px;
+  border: 0px solid #ccc;
+  border-radius: 20px;
+  background-color: #f1f4fe;
+  box-shadow: none;
+  width: 108.5%;
+  resize: none;
+  margin-left: -25px; /* Shift email box to the left */
+}
+
+#contactForm textarea {
+  width: 108.5%; /* Reduces the width */
+  height: 100px; /* Reduces the height */
+  padding: 20px; /* Adjust padding for a smaller size */
+  border: 0px solid #ccc; /* Light border for a clean look */
+  border-radius: 20px; /* Slightly rounded corners */
+  resize: none; /* Allows resizing vertically */
+  margin-top: -15px; /* Space above the box */
+  margin-bottom: 15px; /* Space below the box */
+}
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  display: flex;
+  justify-content: center; /* Centers horizontally */
+  align-items: center; /* Centers vertically */
+  z-index: 999; /* Ensure it appears above other content */
+  backdrop-filter: blur(1px); /* Blur effect */
+}
+/* Close button styling */
+.popup-content .close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #555;
+  transition: color 0.6s ease;
+}
+
+.popup-content .close-button:hover {
+  color: #ff9800;
+}
+.popup-content p {
+  font-size: 25px;
+  color: #333; /* Dark text color */
+  margin: 0;
+  padding: 20px 20;
+  text-align: center;
+}
+.contact-close-button {
+  position: absolute;
+  background-color: none;
+  top: 30px;
+  right: -100px;
+  color: rgb(7, 7, 7);
+  border: none;
+  border-radius: 50%;
+  font-size: 20px;
+  width: 50px;
+  height: 50px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contact-close-button:hover {
+  color: #ff9800; /* Darker blue on hover */
+}

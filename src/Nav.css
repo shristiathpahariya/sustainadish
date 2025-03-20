@@ -1,0 +1,85 @@
+/* Navbar styling */
+.navbar {
+  display: flex;
+  align-items: center;
+  height: 110px;
+  padding: 30px 25px;
+  position: sticky;
+  z-index: 10;
+  justify-content: space-between;
+}
+
+/* Logo styling */
+.logo {
+  height: 100px;
+  margin-right: auto;
+}
+
+/* Navigation button styling */
+.nav--title {
+  padding: 20px 21px;
+  border-radius: 50px;
+  cursor: pointer;
+  border: 0;
+  background-color: transparent;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-size: 12px;
+  transition: all 0.5s ease;
+  color: rgba(0, 0, 0, 0.715);
+  font-weight: bold;
+}
+
+.nav--title:hover {
+  letter-spacing: 3px;
+  background-color: hsl(161, 67%, 69%);
+  color: white;
+  box-shadow: 0px 7px 29px 0px rgba(95, 179, 162, 0.8);
+}
+
+.nav--title:active {
+  background-color: hsl(152, 74%, 66%);
+  color: white;
+  transform: translateY(3px);
+  transition: 100ms;
+}
+
+/* User profile section */
+.user-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  gap: 4px;
+  margin-left: 1px;
+  height: 50px; /* Set a fixed height if needed to keep structure */
+  flex-shrink: 0; /* Keeps profile picture fixed */
+}
+
+/* User profile image styling */
+.user-profile-img {
+  width: 45px;
+  height: 45px;
+  cursor: pointer;
+  transition: filter 0.3s ease;
+  margin-bottom: 5px; /* Add consistent space below the image */
+}
+
+.user-profile-img:hover {
+  filter: brightness(1.1);
+}
+
+/* Styling for user name or email */
+.user-name {
+  font-weight: bold;
+  font-size: 10px;
+  color: #333;
+  max-width: 70px;
+  text-align: center;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  line-height: 1.1;
+  white-space: normal;
+  margin-top: 0;
+  position: relative;
+}

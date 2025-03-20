@@ -1,0 +1,51 @@
+# Node.js dependencies
+node_modules/
+package-lock.json
+
+# Python dependencies
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment variables & sensitive files
+.env
+*.secret
+config.json
+
+# Logs & caches
+*.log
+*.cache
+*.db
+
+# Compiled files
+*.pkl
+*.h5
+*.hdf5
+*.sqlite
+
+# VSCode settings
+.vscode/
+
+# Build files
+dist/
+build/
+
+# Flask & frontend cache
+instance/
+*.egg-info/
+coverage/
+.cache/
+.DS_Store
+
+# Static assets (if generated dynamically)
+public/static/
+
+# Ignore ml.html if it's auto-generated
+ml.html
