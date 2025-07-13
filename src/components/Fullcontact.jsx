@@ -1,7 +1,7 @@
 // src/App.js
 import React from 'react';
-import Contactform from './ContactForm';
-import Contactinfo from './ContactInfo';
+import Contactform from './Contactform';
+import Contactinfo from './Contactinfo';
 import Popup from './Popup';
 
 
