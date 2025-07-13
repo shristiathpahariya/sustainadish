@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import '../.././src/Popup.css'
+import '../.././src/PopUp.css'
 
 const Popup = ({ isOpen, onRequestClose, children, className, overlayClassName }) => {
   if (!isOpen) return null;
