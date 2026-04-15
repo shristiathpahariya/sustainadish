@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Popup from './Popup';
+import { apiUrl } from '../config';
 import '../../src/feedback.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -35,7 +36,7 @@ const Feedback = () => {
 
     try {
       // Send feedback data to the backend
-      const response = await fetch('http://localhost:3000/api/feedback', {
+      const response = await fetch(`${apiUrl}/feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

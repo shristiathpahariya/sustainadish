@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { gapi } from "gapi-script"; // For Google OAuth
 import axios from "axios";
+import { apiUrl } from "../config";
 import styles from "../../src/Login.module.css"; // Custom CSS
 
 const Login = () => {
@@ -61,7 +62,7 @@ const Login = () => {
     setError("");
     setLoading(true);
     try {
-      const url = "http://localhost:3000/api/auth/login"; // Backend API URL
+      const url = `${apiUrl}/auth/login`;
       const response = await axios.post(url, data);
       if (response && response.data && response.data.token) {
         localStorage.setItem("token", response.data.token); // Store the token

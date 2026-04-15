@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { apiUrl } from '../config';
 import styles from '../../src/Signup.module.css'; // Custom CSS
 
 
@@ -29,7 +30,7 @@ const Signup = () => {
             return;
         }
         try {
-            const url = 'http://localhost:3000/api/auth/register'; // Corrected URL
+            const url = `${apiUrl}/auth/register`;
             const { data: res } = await axios.post(url, data);
              // Store user details in localStorage after registration
         const userData = {

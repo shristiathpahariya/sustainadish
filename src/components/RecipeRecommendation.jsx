@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
-import '../.././src/receipe.css'
+import { mlApiUrl } from '../config';
+import '../.././src/receipe.css';
 
 const RecipeRecommendation = () => {
   const navigate = useNavigate()
@@ -22,7 +23,7 @@ const RecipeRecommendation = () => {
     setResultsLoaded(false);
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/recommend', {
+      const response = await fetch(`${mlApiUrl}/recommend`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 
-// JWT Secret Key
-const JWT_SECRET = 'your_secret_key';
+// JWT Secret Key from environment variables
+const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
 
 const authMiddleware = (req, res, next) => {
   const token = req.header('x-auth-token');

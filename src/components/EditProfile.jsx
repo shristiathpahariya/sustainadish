@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { apiUrl } from '../config';
 import '../../src/Editprofile.css';
 import { useNavigate } from "react-router-dom";
 import { useUser } from '../UserContext';
@@ -75,7 +76,7 @@ const Editprofile = () => {
   
     try {
       const response = await axios.patch(
-        `http://localhost:3000/api/auth/update-profile/${user._id}`,
+        `${apiUrl}/auth/update-profile/${user._id}`,
         updatedData
       );
   

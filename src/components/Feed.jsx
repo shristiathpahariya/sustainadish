@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../UserContext";
+import { apiUrl } from "../config";
 import "../.././src/feed.css";
 
 const Feed = () => {
@@ -16,7 +17,7 @@ const Feed = () => {
    useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/feed"); // Endpoint to fetch donations
+        const response = await fetch(`${apiUrl}/feed`); // Endpoint to fetch donations
         if (response.ok) {
           const data = await response.json();
            // Sort posts by createdAt in descending order (latest first)
@@ -47,7 +48,7 @@ const Feed = () => {
           {posts.map((post) => (
             <div key={post._id} className="feed-card">
               <img
-                src={`http://localhost:3000/api/donations/${post._id}/image`} // Fetch the image
+                src={`${apiUrl}/donations/${post._id}/image`} // Fetch the image
                 alt={post.item}
                 className="feed-image"
               />

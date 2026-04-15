@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../.././src/Profile.css";
 import { useUser } from "../UserContext";
+import { apiUrl } from "../config";
 import "../.././src/post.css";
 
 const Profile = () => {
@@ -50,7 +51,7 @@ const Profile = () => {
         }
 
         const response = await fetch(
-          `http://localhost:3000/api/user/donations?email=${userEmail}`
+          `${apiUrl}/user/donations?email=${userEmail}`
         );
 
         if (!response.ok) {
@@ -109,7 +110,7 @@ const Profile = () => {
             onClick={() => handlePostClick(post)} // Handle click
           >
             <img
-              src={`http://localhost:3000/api/donations/${post._id}/image`}
+              src={`${apiUrl}/donations/${post._id}/image`}
               alt={post.item}
               className="post-image"
             />
@@ -120,7 +121,7 @@ const Profile = () => {
         <div className="popup-overlay" onClick={closePopup}>
           <div className="popup-content" onClick={(e) => e.stopPropagation()}>
             <img
-              src={`http://localhost:3000/api/donations/${selectedPost._id}/image`}
+              src={`${apiUrl}/donations/${selectedPost._id}/image`}
               alt={selectedPost.item}
               className="popup-image"
             />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../UserContext';
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from '../config';
 import '../.././src/form.css';
 
 const Form = () => {
@@ -82,7 +83,7 @@ const Form = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/api/messageForm', {
+      const response = await fetch(`${apiUrl}/messageForm`, {
         method: 'POST',
         body: formDataToSend
       });

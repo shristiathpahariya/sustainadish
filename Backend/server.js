@@ -5,9 +5,10 @@ const bodyParser = require('body-parser');
 const multer = require('multer');
 const path = require('path');
 const authRoutes = require('./routes/auth');
+require('dotenv').config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -15,9 +16,9 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // MongoDB connection
-const dbURI = 'mongodb+srv://Shristi:zNkYjkdZ-N$!3bj@sustainadish.tsn4v.mongodb.net/?retryWrites=true&w=majority&appName=sustainadish';
+const dbURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/sustainadish';
 mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB Atlas connected'))
+  .then(() => console.log('MongoDB connected'))
   .catch(err => console.log('MongoDB connection error:', err));
 
 // Define schemas and models

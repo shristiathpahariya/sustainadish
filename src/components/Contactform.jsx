@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Popup from './Popup'; // Make sure this path is correct
+import { apiUrl } from '../config';
 import '../.././src/contactus.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -30,7 +31,7 @@ const Contactform = () => {
 
     try {
       // Send data to the server
-      const response = await fetch('http://localhost:3000/api/messages', {
+      const response = await fetch(`${apiUrl}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -4,8 +4,8 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// JWT Secret Key
-const JWT_SECRET = 'your_secret_key';
+// JWT Secret Key from environment variables
+const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
 
 // Register Route
 router.post('/register', async (req, res) => {
