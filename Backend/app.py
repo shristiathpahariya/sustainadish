@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
+import os
 import pickle
 from sklearn.metrics.pairwise import cosine_similarity
 import gensim.models.keyedvectors as word2vec
@@ -136,4 +137,6 @@ def recommend():
 
 # Run the Flask app
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Get port from environment variable or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
