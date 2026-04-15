@@ -20,6 +20,9 @@ stemmer = nltk.stem.PorterStemmer()
 
 # Initialize Flask app
 app = Flask(__name__)
+# Force production mode
+app.config['DEBUG'] = False
+app.config['TESTING'] = False
 CORS(app)
 
 # Initialize spellchecker
@@ -109,6 +112,16 @@ def is_valid_input(user_input):
     return True
 
 
+@app.route('/')
+def index():
+    """Root endpoint for health checks"""
+    return jsonify({"message": "Recipe Recommendation API", "status": "running"}), 200
+
+@app.route('/health')
+def health():
+    """Health check endpoint for Render monitoring"""
+    return jsonify({"status": "healthy"}), 200
+
 @app.route('/recommend', methods=['POST'])
 def recommend():
     user_input = request.form.get('ingredients', '')
@@ -139,4 +152,5 @@ def recommend():
 if __name__ == "__main__":
     # Get port from environment variable or default to 5000
     port = int(os.environ.get('PORT', 5000))
+    # Always run with debug=False in production
     app.run(host='0.0.0.0', port=port, debug=False)
