@@ -1,7 +1,10 @@
 const express = require('express');
+const crypto = require('crypto');
+const mongoose = require('mongoose');
 const router = express.Router();
 const multer = require('multer');
 const User = require('../models/User');
+const { isValidEmail } = require('../utils/validation');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sanitizeAuthInput } = require('../middleware/validationMiddleware');
@@ -29,6 +32,25 @@ const profilePictureUpload = multer({
 // JWT Secret Key from environment variables
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_in_production';
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
+
+function splitGoogleDisplayName(name) {
+  const raw = typeof name === 'string' ? name.trim() : '';
+  const parts = raw.split(/\s+/).filter(Boolean);
+  let firstName = parts[0] || 'User';
+  let lastName = parts.slice(1).join(' ') || 'Account';
+  if (firstName.length < 2) firstName = 'User';
+  if (lastName.length < 2) lastName = 'Account';
+  return {
+    firstName: firstName.slice(0, 100),
+    lastName: lastName.slice(0, 100),
+  };
+}
+
+function isValidObjectIdParam(id) {
+  if (id == null || id === '') return false;
+  if (String(id) === 'undefined' || String(id) === 'null') return false;
+  return mongoose.Types.ObjectId.isValid(String(id));
+}
 
 // Register Route
 router.post('/register', sanitizeAuthInput, async (req, res) => {
@@ -154,12 +176,94 @@ router.post('/login', sanitizeAuthInput, async (req, res) => {
   }
 });
 
+// Google OAuth — find or create user so the client always receives a MongoDB _id
+router.post('/google', async (req, res) => {
+  try {
+    const { email, name, profilePicture } = req.body;
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({ message: 'Invalid email address' });
+    }
+
+    const { firstName, lastName } = splitGoogleDisplayName(
+      typeof name === 'string' ? name : ''
+    );
+
+    let pic = '/user.png';
+    if (typeof profilePicture === 'string' && profilePicture.trim().length > 0) {
+      const trimmed = profilePicture.trim();
+      if (trimmed.length < 2_000_000) {
+        pic = trimmed;
+      }
+    }
+
+    let user = await User.findOne({ email: normalizedEmail });
+
+    if (user) {
+      await user.updateLastLogin();
+      if (!user.googleLogin) {
+        user.googleLogin = true;
+        await user.save();
+      }
+    } else {
+      user = new User({
+        firstName,
+        lastName,
+        email: normalizedEmail,
+        password: crypto.randomBytes(32).toString('hex'),
+        googleLogin: true,
+        contact: '',
+        location: '',
+        profilePicture: pic,
+      });
+      await user.save();
+      await user.updateLastLogin();
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY }
+    );
+
+    res.cookie('token', token, getAuthCookieOptions());
+
+    return res.status(200).json({
+      message: 'Login successful',
+      token,
+      user: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        location: user.location,
+        contact: user.contact,
+        profilePicture: user.profilePicture || '/user.png',
+        googleLogin: user.googleLogin === true,
+      },
+    });
+  } catch (error) {
+    console.error('Google login error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: Object.values(error.errors).map((e) => e.message).join(', '),
+      });
+    }
+    res.status(500).json({ message: 'Server error during Google login' });
+  }
+});
+
 // Update Profile Route
 router.patch('/update-profile/:id', async (req, res) => {
   const userId = req.params.id;  // Ensure we’re retrieving the ID correctly from params
 
-  if (!userId) {
-    return res.status(400).json({ message: 'User ID is missing.' });
+  if (!userId || !isValidObjectIdParam(userId)) {
+    return res.status(400).json({ message: 'User ID is missing or invalid.' });
   }
 
   try {
@@ -195,8 +299,8 @@ router.patch('/update-profile/:id', async (req, res) => {
 router.post('/upload-profile-picture/:id', authMiddleware, profilePictureUpload.single('profilePicture'), async (req, res) => {
   const userId = req.params.id;
 
-  if (!userId) {
-    return res.status(400).json({ message: 'User ID is missing.' });
+  if (!userId || !isValidObjectIdParam(userId)) {
+    return res.status(400).json({ message: 'User ID is missing or invalid.' });
   }
 
   // Ensure user can only update their own profile (convert both to strings for comparison)

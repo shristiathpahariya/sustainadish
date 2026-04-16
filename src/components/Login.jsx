@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { gapi } from "gapi-script"; // For Google OAuth
-import { apiClient } from "../config";
-import styles from "../../src/Login.module.css"; // Custom CSS
+import { apiClient, googleClientId } from "../config";
+import styles from "../Login.module.css";
 import { useMessageDialog } from "../context/MessageDialogContext";
 import { useUser } from "../UserContext";
 
@@ -24,37 +24,77 @@ const Login = () => {
 
   // Initialize Google OAuth with gapi
   useEffect(() => {
+    if (!googleClientId) {
+      if (import.meta.env.DEV) {
+        console.warn(
+          "[Login] VITE_GOOGLE_CLIENT_ID is not set; Google sign-in is disabled."
+        );
+      }
+      return;
+    }
     function start() {
       gapi.client.init({
-        clientId: "196811482048-2q1m1kpubrhedvukdc4odeetg88jgnco.apps.googleusercontent.com",
+        clientId: googleClientId,
         scope: "email profile",
       });
     }
     gapi.load("client:auth2", start);
-  }, []);
+  }, [googleClientId]);
 
-  // Handle Google login
+  // Handle Google login — sync with backend so user has MongoDB _id (profile updates, cookies)
   const handleGoogleLogin = () => {
+    if (!googleClientId) {
+      setError("Google sign-in is not configured. Set VITE_GOOGLE_CLIENT_ID in your environment.");
+      return;
+    }
     const auth2 = gapi.auth2.getAuthInstance();
-    auth2.signIn().then((user) => {
-      const profile = user.getBasicProfile();
+    auth2
+      .signIn()
+      .then(async (googleUser) => {
+        const profile = googleUser.getBasicProfile();
+        setLoading(true);
+        setError("");
+        try {
+          const response = await apiClient.post("/auth/google", {
+            email: profile.getEmail(),
+            name: profile.getName(),
+            profilePicture: profile.getImageUrl(),
+          });
 
-      // Store user information with Google profile picture
-      const userData = {
-        name: profile.getName(),
-        email: profile.getEmail(),
-        googleLogin: true,
-        profilePicture: profile.getImageUrl(),
-      };
-
-      setUser(userData);
-
-      notifySuccess("You're signed in with Google.", "Welcome");
-      navigate("/");
-    }).catch((error) => {
-      console.error("Google login failed:", error);
-      setError("Google login failed. Please try again.");
-    });
+          if (response?.data?.user) {
+            const u = response.data.user;
+            const userData = {
+              _id: u._id,
+              name:
+                u.firstName && u.lastName
+                  ? `${u.firstName} ${u.lastName}`
+                  : profile.getName(),
+              email: u.email,
+              googleLogin: true,
+              location: u.location,
+              contact: u.contact,
+              profilePicture: u.profilePicture || profile.getImageUrl() || "/user.png",
+            };
+            setUser(userData);
+            notifySuccess("You're signed in with Google.", "Welcome");
+            navigate("/");
+          } else {
+            setError("Invalid response from server. Please try again.");
+          }
+        } catch (err) {
+          console.error("Google login failed:", err);
+          setError(
+            err.response?.data?.message ||
+              "Google login failed. Please try again."
+          );
+        } finally {
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("Google sign-in failed:", error);
+        setError("Google login failed. Please try again.");
+      });
   };
 
   // Handle form submission for traditional login
@@ -108,6 +148,7 @@ const Login = () => {
         <div className={styles.right}>
           <form className={styles.form_container} onSubmit={handleSubmit}>
             <h1 className={styles.title}>Log in</h1>
+            <p className={styles.subtitle}>Welcome back — sign in to continue.</p>
             <input
               type="email"
               placeholder="Enter your email"
@@ -137,7 +178,7 @@ const Login = () => {
               </Link>
             </div>
             <div className={styles.separator}><span>OR</span></div>
-            <button type="button" className={styles.google_btn} onClick={handleGoogleLogin}>
+            <button type="button" className={styles.google_btn} onClick={handleGoogleLogin} disabled={loading}>
               <img src="/googleLogo.png" alt="Google" className={styles.google_logo} />
               Continue with Google
             </button>

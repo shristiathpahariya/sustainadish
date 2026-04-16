@@ -108,6 +108,13 @@ const Editprofile = () => {
       return;
     }
 
+    const userId = u._id ?? u.id;
+    if (!userId) {
+      notifyError("Your account is missing an ID. Please sign out and sign in again.", "Session error");
+      setIsModalOpen(false);
+      return;
+    }
+
     if (selectedFile) {
       setUploading(true);
       try {
@@ -115,7 +122,7 @@ const Editprofile = () => {
         formData.append("profilePicture", selectedFile);
 
         const uploadResponse = await apiClient.post(
-          `/auth/upload-profile-picture/${u._id}`,
+          `/auth/upload-profile-picture/${userId}`,
           formData,
           { headers: { "Content-Type": "multipart/form-data" } }
         );
@@ -135,7 +142,7 @@ const Editprofile = () => {
           };
 
           const profileResponse = await apiClient.patch(
-            `/auth/update-profile/${u._id}`,
+            `/auth/update-profile/${userId}`,
             updatedData
           );
 
@@ -162,7 +169,7 @@ const Editprofile = () => {
       };
 
       try {
-        const response = await apiClient.patch(`/auth/update-profile/${u._id}`, updatedData);
+        const response = await apiClient.patch(`/auth/update-profile/${userId}`, updatedData);
 
         if (response.data.success) {
           localStorage.setItem("user", JSON.stringify(response.data.user));

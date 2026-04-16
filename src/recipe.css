@@ -359,6 +359,123 @@
   margin-bottom: 0.5rem;
 }
 
+.recipe-card--preview {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.recipe-card__preview-line {
+  font-family: "Playfair Display", serif;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #5f5e5a;
+  margin: 0 0 1.25rem;
+  flex: 1;
+}
+
+.recipe-card__preview-line--muted {
+  font-style: italic;
+  color: #888780;
+}
+
+.recipe-card__open {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: 10px 20px;
+  border: 2px solid #047857;
+  background: #fff;
+  color: var(--rp-green-deep);
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.recipe-card__open:hover {
+  background: linear-gradient(135deg, #047857 0%, var(--rp-green) 55%, #10b981 100%);
+  color: #faf8f3;
+  transform: translateY(-1px);
+}
+
+.recipe-card__open:focus-visible {
+  outline: 2px solid var(--rp-green);
+  outline-offset: 3px;
+}
+
+/* Native dialog — full recipe detail */
+.recipe-modal {
+  max-width: min(100vw - 2rem, 640px);
+  width: 100%;
+  max-height: min(90vh, 720px);
+  padding: 0;
+  border: 2px solid #1a1a1a;
+  background: transparent;
+  box-shadow: none;
+}
+
+.recipe-modal::backdrop {
+  background: rgba(26, 26, 26, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.recipe-modal__panel {
+  position: relative;
+  max-height: min(90vh, 720px);
+  overflow-y: auto;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  padding-top: clamp(2.5rem, 5vw, 3rem);
+  background: #fff;
+  box-shadow: 8px 8px 0 rgba(26, 26, 26, 0.08);
+}
+
+.recipe-modal__panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--rp-green), #34d399, #d85a30);
+}
+
+.recipe-modal__title {
+  padding-right: 2.5rem;
+}
+
+.recipe-modal__close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 2px solid #1a1a1a;
+  background: var(--rp-cream);
+  font-family: "Space Mono", monospace;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.recipe-modal__close:hover {
+  background: #1a1a1a;
+  color: #faf8f3;
+}
+
+.recipe-modal__close:focus-visible {
+  outline: 2px solid var(--rp-green);
+  outline-offset: 2px;
+}
+
 .recipe-card__instructions-fallback {
   font-family: "Playfair Display", serif;
   font-size: 0.98rem;

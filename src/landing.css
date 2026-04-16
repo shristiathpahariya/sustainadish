@@ -369,6 +369,73 @@
   letter-spacing: 0.03em;
 }
 
+.scroll-recipes__hint {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: #888780;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  max-width: 640px;
+  margin: 0 0 0.5rem;
+}
+
+.recipe-card--loading {
+  cursor: default;
+  pointer-events: none;
+}
+
+.recipe-card--loading:hover {
+  background: #fff;
+}
+
+.recipe-img--skeleton {
+  animation: landing-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.recipe-cat--skeleton,
+.recipe-name--skeleton,
+.recipe-meta--skeleton {
+  border-radius: 2px;
+  background: linear-gradient(90deg, #ece8df 0%, #f5f2eb 50%, #ece8df 100%);
+  background-size: 200% 100%;
+  animation: landing-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.recipe-name--skeleton {
+  height: 1.15rem;
+  margin-bottom: 8px;
+}
+
+.recipe-cat--skeleton {
+  height: 10px;
+  width: 40%;
+  margin-bottom: 8px;
+}
+
+.recipe-meta--skeleton {
+  height: 9px;
+  width: 75%;
+}
+
+@keyframes landing-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes landing-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 /* ────────────────────────────────────────
    THIRD SCROLL  (Donate)
 ──────────────────────────────────────── */

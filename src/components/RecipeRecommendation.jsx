@@ -1,7 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { mlApiUrl } from "../config";
 import "../recipe.css";
+
+/** Stub for future analytics (e.g. POST /api/events). Call when user opens full recipe detail. */
+function logRecipeOpen(payload) {
+  if (import.meta.env?.DEV) {
+    console.debug("[recipe analytics]", payload);
+  }
+}
 
 const splitIngredients = (raw) => {
   if (raw == null) return [];
@@ -37,10 +44,57 @@ const RecipeRecommendation = () => {
   const [error, setError] = useState("");
   const [resultsLoaded, setResultsLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(null);
+  const dialogRef = useRef(null);
+
+  const selectedRecipe =
+    selectedIndex !== null && selectedIndex < recipes.length ? recipes[selectedIndex] : null;
+
+  const modalTitle = selectedRecipe
+    ? (selectedRecipe.Title ?? selectedRecipe.title ?? "Recipe")
+    : "";
+  const modalIngredientList = selectedRecipe
+    ? splitIngredients(selectedRecipe.Ingredients ?? selectedRecipe.ingredients ?? "")
+    : [];
+  const modalStepList = selectedRecipe
+    ? splitInstructions(selectedRecipe.Instructions ?? selectedRecipe.instructions ?? "")
+    : [];
+
+  useEffect(() => {
+    if (selectedIndex === null) return;
+    const el = dialogRef.current;
+    if (!el) return;
+    if (!el.open) el.showModal();
+  }, [selectedIndex]);
+
+  const closeModal = () => {
+    dialogRef.current?.close();
+    setSelectedIndex(null);
+  };
+
+  const handleDialogClose = () => {
+    setSelectedIndex(null);
+  };
+
+  const openRecipeDetail = (index) => {
+    const recipe = recipes[index];
+    if (!recipe) return;
+    const title = recipe.Title ?? recipe.title ?? "Recipe";
+    logRecipeOpen({
+      event: "recipe_open",
+      title,
+      rank: index,
+      totalShown: recipes.length,
+      searchQuery: ingredients.trim(),
+    });
+    setSelectedIndex(index);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSelectedIndex(null);
+    dialogRef.current?.close();
     setRecipes([]);
     setResultsLoaded(false);
     setLoading(true);
@@ -143,40 +197,94 @@ const RecipeRecommendation = () => {
           {recipes.map((recipe, index) => {
             const title = recipe.Title ?? recipe.title ?? "Recipe";
             const ing = recipe.Ingredients ?? recipe.ingredients ?? "";
-            const steps = recipe.Instructions ?? recipe.instructions ?? "";
             const ingredientList = splitIngredients(ing);
-            const stepList = splitInstructions(steps);
+            const previewItems = ingredientList.slice(0, 2);
+            const extraCount = Math.max(0, ingredientList.length - previewItems.length);
             return (
-              <article key={`${title}-${index}`} className="recipe-card">
+              <article key={`${title}-${index}`} className="recipe-card recipe-card--preview">
                 <p className="recipe-card__index">
                   Recipe {index + 1}
                   {recipes.length > 1 ? ` of ${recipes.length}` : ""}
                 </p>
                 <h2 className="recipe-card__title">{title}</h2>
-                <h3 className="recipe-card__subtitle">Ingredients</h3>
                 {ingredientList.length > 0 ? (
-                  <ul className="recipe-card__list">
-                    {ingredientList.map((item, i) => (
-                      <li key={i}>{item}</li>
-                    ))}
-                  </ul>
+                  <p className="recipe-card__preview-line">
+                    {previewItems.join(" · ")}
+                    {extraCount > 0 ? ` · +${extraCount} more` : ""}
+                  </p>
                 ) : (
-                  <p className="recipe-card__empty-part">No ingredient list included for this recipe.</p>
+                  <p className="recipe-card__preview-line recipe-card__preview-line--muted">
+                    Ingredient list not available — open to view details.
+                  </p>
                 )}
-                <h3 className="recipe-card__subtitle">Instructions</h3>
-                {stepList.length > 0 ? (
-                  <ol className="recipe-card__steps">
-                    {stepList.map((step, i) => (
-                      <li key={i}>{step}</li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="recipe-card__empty-part">No instructions included.</p>
-                )}
+                <button
+                  type="button"
+                  className="recipe-card__open"
+                  onClick={() => openRecipeDetail(index)}
+                >
+                  View full recipe
+                </button>
               </article>
             );
           })}
         </div>
+
+        <dialog
+          ref={dialogRef}
+          className="recipe-modal"
+          aria-labelledby="recipe-modal-title"
+          onClose={handleDialogClose}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
+          {selectedRecipe ? (
+            <div
+              className="recipe-modal__panel"
+              onClick={(e) => e.stopPropagation()}
+              role="document"
+            >
+              <button
+                type="button"
+                className="recipe-modal__close"
+                onClick={closeModal}
+                aria-label="Close recipe"
+              >
+                ×
+              </button>
+              <p className="recipe-card__index">
+                {selectedIndex !== null && recipes.length > 1
+                  ? `Recipe ${selectedIndex + 1} of ${recipes.length}`
+                  : "Recipe"}
+              </p>
+              <h2 id="recipe-modal-title" className="recipe-card__title recipe-modal__title">
+                {modalTitle}
+              </h2>
+              <h3 className="recipe-card__subtitle">Ingredients</h3>
+              {modalIngredientList.length > 0 ? (
+                <ul className="recipe-card__list">
+                  {modalIngredientList.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="recipe-card__empty-part">
+                  No ingredient list included for this recipe.
+                </p>
+              )}
+              <h3 className="recipe-card__subtitle">Instructions</h3>
+              {modalStepList.length > 0 ? (
+                <ol className="recipe-card__steps">
+                  {modalStepList.map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="recipe-card__empty-part">No instructions included.</p>
+              )}
+            </div>
+          ) : null}
+        </dialog>
 
         {!resultsLoaded && !loading ? (
           <div className="recommend-media">

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { apiClient } from '../config';
-import styles from '../../src/Signup.module.css'; // Custom CSS
+import { gapi } from 'gapi-script';
+import { apiClient, googleClientId } from '../config';
+import styles from '../Signup.module.css';
 import { useMessageDialog } from '../context/MessageDialogContext';
 import { useUser } from '../UserContext';
 
@@ -22,6 +23,24 @@ const Signup = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!googleClientId) {
+            if (import.meta.env.DEV) {
+                console.warn(
+                    '[Signup] VITE_GOOGLE_CLIENT_ID is not set; Google sign-in is disabled.'
+                );
+            }
+            return;
+        }
+        function start() {
+            gapi.client.init({
+                clientId: googleClientId,
+                scope: 'email profile',
+            });
+        }
+        gapi.load('client:auth2', start);
+    }, [googleClientId]);
 
     const handleChange = ({ currentTarget: input }) => {
         setData({ ...data, [input.name]: input.value });
@@ -64,33 +83,71 @@ const Signup = () => {
     };
 
     const handleGoogleSignUp = () => {
+        if (!googleClientId) {
+            setError('Google sign-in is not configured. Set VITE_GOOGLE_CLIENT_ID in your environment.');
+            return;
+        }
         const auth2 = gapi.auth2.getAuthInstance();
-        auth2.signIn().then((user) => {
-          const profile = user.getBasicProfile();
-    
-          // Store user information with Google profile picture
-          const userData = {
-            name: profile.getName(),
-            email: profile.getEmail(),
-            googleLogin: true, // Set flag for Google login
-          };
-    
-          setUser(userData);
+        auth2
+            .signIn()
+            .then(async (googleUser) => {
+                const profile = googleUser.getBasicProfile();
+                setLoading(true);
+                setError('');
+                try {
+                    const response = await apiClient.post('/auth/google', {
+                        email: profile.getEmail(),
+                        name: profile.getName(),
+                        profilePicture: profile.getImageUrl(),
+                    });
 
-          notifySuccess("Your Google account is ready to use.", "Welcome");
-          navigate("/");
-        }).catch((error) => {
-          console.error("Google SignUp failed:", error);
-          setError("Google SignUp failed. Please try again.");
-        });
-      };
+                    if (response?.data?.user) {
+                        const u = response.data.user;
+                        const userData = {
+                            _id: u._id,
+                            name:
+                                u.firstName && u.lastName
+                                    ? `${u.firstName} ${u.lastName}`
+                                    : profile.getName(),
+                            email: u.email,
+                            googleLogin: true,
+                            location: u.location,
+                            contact: u.contact,
+                            profilePicture:
+                                u.profilePicture || profile.getImageUrl() || '/user.png',
+                        };
+                        setUser(userData);
+                        notifySuccess('Your Google account is ready to use.', 'Welcome');
+                        navigate('/');
+                    } else {
+                        setError('Invalid response from server. Please try again.');
+                    }
+                } catch (err) {
+                    console.error('Google SignUp failed:', err);
+                    setError(
+                        err.response?.data?.message ||
+                            'Google SignUp failed. Please try again.'
+                    );
+                } finally {
+                    setLoading(false);
+                }
+            })
+            .catch((error) => {
+                console.error('Google sign-in failed:', error);
+                setError('Google SignUp failed. Please try again.');
+            });
+    };
 
     return (
         <div className={styles.signup_container}>
             <div className={styles.signup_form_container}>
                 <div className={styles.left}>
+                    <img src="/watermelon.jpeg" alt="Fresh ingredients" className={styles.signup_image} />
+                </div>
+                <div className={styles.right}>
                     <form className={styles.signup_form} onSubmit={handleSubmit}>
-                        <h1>Sign Up</h1>
+                        <h1 className={styles.title}>Create account</h1>
+                        <p className={styles.subtitle}>Join SustainaDish to share and discover sustainable recipes.</p>
                         <div className={styles.name_input}>
                             <input
                                 type="text"
@@ -142,6 +199,15 @@ const Signup = () => {
                             autoComplete="new-password"
                         />
                         {error && <div className={styles.error_msg}>{error}</div>}
+                        <div className={styles.agreeRow}>
+                            <input type="checkbox" className={styles.checkbox} id="signup-terms" required aria-label="Agree to terms and privacy policy" />
+                            <p className={styles.conditions}>
+                                I’ve read and agree to the{' '}
+                                <Link to="/terms" className={styles.terms_link}>Terms and Conditions</Link>
+                                {' '}and{' '}
+                                <Link to="/privacy" className={styles.terms_link}>Privacy Policy</Link>.
+                            </p>
+                        </div>
                         <button type="submit" className={styles.orange_btn} disabled={loading}>
                             {loading ? 'Creating Account...' : 'Sign Up'}
                         </button>
@@ -152,6 +218,7 @@ const Signup = () => {
                             type="button"
                             className={styles.google_btn}
                             onClick={handleGoogleSignUp}
+                            disabled={loading}
                         >
                             <img src="/googleLogo.png" alt="Google" />
                             Continue with Google
@@ -159,16 +226,9 @@ const Signup = () => {
 
                         <div className={styles.login_prompt}>
                             Already have an account?{' '}
-                            <Link to="/login" className={styles.login_link}>Login</Link>
+                            <Link to="/login" className={styles.login_link}>Log in</Link>
                         </div>
-                        <div className={styles.inputcheck}>
-                        <input type="checkbox" className={styles.checkbox} required/><p className='conditions'>I’ve read and agree with the <Link to="/terms" className={styles.terms_link}>SustainaDish Terms and Conditions</Link>&nbsp;
-                         and &nbsp; <Link to="/privacy" className={styles.terms_link}>Privacy Policy</Link>. </p>
-                         </div>
                     </form>
-                </div>
-                <div className={styles.right}>
-                    <img src="/watermelon.jpeg" alt="Signup" className={styles.signup_image} />
                 </div>
             </div>
         </div>
