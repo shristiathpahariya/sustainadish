@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { getAuthCookieClearOptions } = require('../config/authCookie');
 
 class AuthController {
   // Get current authenticated user
@@ -27,12 +28,7 @@ class AuthController {
   // Logout user
   static async logout(req, res) {
     try {
-      // Clear the httpOnly cookie
-      res.clearCookie('token', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict'
-      });
+      res.clearCookie('token', getAuthCookieClearOptions());
 
       res.status(200).json({ 
         message: 'Logged out successfully' 
@@ -67,11 +63,7 @@ class AuthController {
 
       await User.findByIdAndDelete(userId);
 
-      res.clearCookie('token', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-      });
+      res.clearCookie('token', getAuthCookieClearOptions());
 
       res.status(200).json({
         message: 'Account and your donation listings have been removed.',
