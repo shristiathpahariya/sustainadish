@@ -1,17 +1,15 @@
 import React from "react";
 import FirstScroll from "./FirstScroll";
-import SecondScroll from "./SecondScroll";
 import ThirdScroll from "./ThirdScroll";
-import '../.././src/App.css'
+import "../landing.css";
 
-
-function Landing(){
-    return(
-        <div>
-            <FirstScroll/>
-            <ThirdScroll/>
-        </div>
-    )
+function Landing() {
+  return (
+    <main className="landing-page">
+      <FirstScroll />
+      <ThirdScroll />
+    </main>
+  );
 }
 
-export default Landing
+export default Landing;

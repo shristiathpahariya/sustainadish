@@ -3,21 +3,76 @@ const bcrypt = require('bcryptjs');
 
 // Define user schema
 const userSchema = new mongoose.Schema({
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  contact: { type: Number, required: false},
-  location: { type: String, required: false},
-  // profilePicture: { type:String, required: true},
+  firstName: { 
+    type: String, 
+    required: [true, 'First name is required'],
+    trim: true,
+    minlength: [2, 'First name must be at least 2 characters']
+  },
+  lastName: { 
+    type: String, 
+    required: [true, 'Last name is required'],
+    trim: true,
+    minlength: [2, 'Last name must be at least 2 characters']
+  },
+  email: { 
+    type: String, 
+    required: [true, 'Email is required'], 
+    unique: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']
+  },
+  password: { 
+    type: String, 
+    required: [true, 'Password is required'],
+    minlength: [6, 'Password must be at least 6 characters']
+  },
+  contact: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  location: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  profilePicture: {
+    type: String,
+    default: '/user.png'
+  },
+  googleLogin: {
+    type: Boolean,
+    default: false
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  lastLogin: {
+    type: Date
+  }
+}, {
+  timestamps: true
 });
+
+// Index for faster queries
+userSchema.index({ email: 1 });
+userSchema.index({ firstName: 1, lastName: 1 });
 
 // Hash password before saving the user
 userSchema.pre('save', async function (next) {
+  // Only hash password if it's modified or new
   if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
+  
+  try {
+    const salt = await bcrypt.genSalt(12); // Increased from 10 to 12 for better security
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Compare entered password with hashed password
@@ -25,5 +80,28 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+// Update last login on successful auth
+userSchema.methods.updateLastLogin = async function () {
+  this.lastLogin = new Date();
+  await this.save();
+};
+
+// Remove sensitive data from user object before sending to client
+userSchema.methods.toJSON = function () {
+  const user = this.toObject();
+  delete user.password;
+  return user;
+};
+
+// When a user is removed, remove their listings (by account link or email)
+userSchema.post(['findOneAndDelete', 'findByIdAndDelete'], async function (doc) {
+  if (!doc) return;
+  const Donation = require('./Donation');
+  await Donation.deleteMany({
+    $or: [{ userId: doc._id }, { email: doc.email }],
+  });
+});
+
 const User = mongoose.model('User', userSchema);
+
 module.exports = User;

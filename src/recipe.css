@@ -1,0 +1,399 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:wght@400;700&display=swap");
+
+/* Recipe recommendation — profile / contact / landing green editorial system */
+
+.recommend-page {
+  --rp-green: #059669;
+  --rp-green-deep: #047857;
+  --rp-cream: #faf8f3;
+  min-height: calc(100vh - 80px);
+  position: relative;
+  overflow-x: hidden;
+  background-color: var(--rp-cream);
+  background-image:
+    radial-gradient(ellipse 85% 65% at 90% 10%, rgba(5, 150, 105, 0.12) 0%, transparent 52%),
+    radial-gradient(ellipse 70% 55% at 8% 85%, rgba(52, 211, 153, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 55% 40% at 50% 50%, rgba(4, 120, 87, 0.05) 0%, transparent 45%);
+}
+
+.recommend-page__inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 2.75rem) clamp(1rem, 4vw, 2rem) clamp(2.5rem, 5vw, 4rem);
+}
+
+.recommend-page__header {
+  text-align: center;
+  margin-bottom: clamp(1rem, 3vw, 1.5rem);
+}
+
+.recommend-page__eyebrow {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rp-green-deep);
+  margin: 0 0 0.5rem;
+}
+
+.recommend-page__title {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.75rem, 4vw, 2.35rem);
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.65rem;
+  line-height: 1.15;
+}
+
+.recommend-page__lede {
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  font-size: clamp(0.95rem, 2vw, 1.05rem);
+  color: #5f5e5a;
+  line-height: 1.55;
+  margin: 0 auto 1rem;
+  max-width: 36rem;
+}
+
+.recommend-page__home {
+  display: inline-block;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rp-green-deep);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.recommend-page__home:hover {
+  color: var(--rp-green);
+  border-bottom-color: rgba(5, 150, 105, 0.4);
+}
+
+.recommend-page__home:focus-visible {
+  outline: 2px solid var(--rp-green);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Editorial separator */
+.recommend-page__separator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 560px;
+  margin: 0 auto clamp(1.5rem, 4vw, 2rem);
+}
+
+.recommend-page__sep-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--rp-green) 18%,
+    #1a1a1a 50%,
+    var(--rp-green) 82%,
+    transparent 100%
+  );
+}
+
+.recommend-page__sep-diamond {
+  width: 8px;
+  height: 8px;
+  background: linear-gradient(135deg, #059669 0%, #34d399 45%, #d85a30 100%);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.recommend-page__sep-label {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+
+.recommend-form {
+  border: 2px solid #1a1a1a;
+  background: #fff;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  margin-bottom: 1rem;
+  box-shadow: 8px 8px 0 rgba(26, 26, 26, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.recommend-form::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #047857 0%, var(--rp-green) 40%, #34d399 85%, #a7f3d0 100%);
+}
+
+.recommend-form__label {
+  display: block;
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.recommend-form__hint {
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color: #888780;
+}
+
+.recommend-form__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 14px;
+  margin-bottom: 1.25rem;
+  border: 1.5px solid #1a1a1a;
+  border-radius: 0;
+  background: var(--rp-cream);
+  font-family: "Playfair Display", serif;
+  font-size: 16px;
+  color: #1a1a1a;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.recommend-form__input:focus {
+  outline: none;
+  border-color: var(--rp-green);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+}
+
+.recommend-form__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 24px;
+  border: 2px solid #047857;
+  background: linear-gradient(135deg, #047857 0%, var(--rp-green) 55%, #10b981 100%);
+  color: #faf8f3;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.2s ease, opacity 0.2s ease;
+  filter: drop-shadow(0 4px 12px rgba(5, 150, 105, 0.3));
+}
+
+.recommend-form__submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 6px 16px rgba(5, 150, 105, 0.4));
+}
+
+.recommend-form__submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.recommend-form__submit:focus-visible {
+  outline: 2px solid var(--rp-green-deep);
+  outline-offset: 3px;
+}
+
+.recommend-page__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 1.25rem 1rem;
+  margin-bottom: 1rem;
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  color: var(--rp-green-deep);
+  background: rgba(209, 250, 229, 0.45);
+  border: 1px solid rgba(5, 150, 105, 0.25);
+}
+
+.recommend-page__spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(5, 150, 105, 0.25);
+  border-top-color: var(--rp-green);
+  border-radius: 50%;
+  animation: recommend-spin 0.75s linear infinite;
+}
+
+@keyframes recommend-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.recommend-page__error {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  color: #b91c1c;
+  background: rgba(254, 226, 226, 0.6);
+  border: 1px solid rgba(185, 28, 28, 0.25);
+  padding: 0.75rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.recommend-page__empty {
+  font-family: "Playfair Display", serif;
+  font-size: 1rem;
+  color: #5f5e5a;
+  text-align: center;
+  margin: 0 0 1.5rem;
+}
+
+.recommend-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 960px) {
+  .recommend-results {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem 1.5rem;
+    align-items: start;
+  }
+}
+
+.recipe-card {
+  border: 2px solid #1a1a1a;
+  background: #fff;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  box-shadow: 6px 6px 0 rgba(26, 26, 26, 0.05);
+  position: relative;
+}
+
+.recipe-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--rp-green), #34d399, #d85a30);
+}
+
+.recipe-card__index {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #888780;
+  margin: 0 0 0.35rem;
+}
+
+.recipe-card__title {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 1rem;
+  line-height: 1.25;
+}
+
+.recipe-card__subtitle {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rp-green-deep);
+  margin: 0 0 0.5rem;
+}
+
+.recipe-card__subtitle + .recipe-card__list {
+  margin-top: 0;
+}
+
+.recipe-card__list {
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+  font-family: "Playfair Display", serif;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: #3d3d38;
+}
+
+.recipe-card__list li {
+  margin-bottom: 0.35rem;
+}
+
+.recipe-card__empty-part {
+  font-family: "Playfair Display", serif;
+  font-size: 0.95rem;
+  font-style: italic;
+  color: #888780;
+  margin: 0 0 1.25rem;
+}
+
+.recipe-card__steps {
+  margin: 0;
+  padding-left: 1.35rem;
+  font-family: "Playfair Display", serif;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: #3d3d38;
+}
+
+.recipe-card__steps li {
+  margin-bottom: 0.5rem;
+}
+
+.recipe-card__instructions-fallback {
+  font-family: "Playfair Display", serif;
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: #3d3d38;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.recommend-media {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  text-align: center;
+  background: none;
+}
+
+.recommend-media__img {
+  max-width: min(100%, 440px);
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.recommend-media__caption {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: #888780;
+  margin: 1rem 0 0;
+}
+
+@media (max-width: 540px) {
+  .recommend-form__submit {
+    width: 100%;
+  }
+}

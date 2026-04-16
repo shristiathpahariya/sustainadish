@@ -2,12 +2,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { UserProvider } from './UserContext';
+import { MessageDialogProvider } from './context/MessageDialogContext';
 import App from './App';
 
 ReactDOM.render(
   <React.StrictMode>
     <UserProvider>
-    <App />
+      <MessageDialogProvider>
+        <App />
+      </MessageDialogProvider>
     </UserProvider>
   </React.StrictMode>,
   document.getElementById('root')

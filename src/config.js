@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 // API Configuration for different environments
 const config = {
   development: {
@@ -15,6 +17,40 @@ const env = import.meta.env.MODE || 'development';
 
 // Export configuration based on current environment
 export const { apiUrl, mlApiUrl } = config[env];
+
+// Create axios instance with credentials support (for httpOnly cookies)
+export const apiClient = axios.create({
+  baseURL: apiUrl,
+  withCredentials: true, // Important for httpOnly cookies
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add request interceptor for debugging (optional)
+if (env === 'development') {
+  apiClient.interceptors.request.use(
+    (config) => {
+      console.log(`[API Request] ${config.method.toUpperCase()} ${config.url}`);
+      return config;
+    },
+    (error) => {
+      console.error('[API Request Error]', error);
+      return Promise.reject(error);
+    }
+  );
+
+  apiClient.interceptors.response.use(
+    (response) => {
+      console.log(`[API Response] ${response.config.method.toUpperCase()} ${response.config.url}`, response.status);
+      return response;
+    },
+    (error) => {
+      console.error('[API Response Error]', error.response?.status, error.config?.url);
+      return Promise.reject(error);
+    }
+  );
+}
 
 // Export entire config object if needed
 export default config;

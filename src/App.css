@@ -1,119 +1,19 @@
+/* Global app shell — keep minimal; page-specific styles live in their own files */
+
 #root {
   width: 100%;
+  min-height: 100%;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  position: relative;
-  /* outline: 1px solid red; */
-}
-/* 
-* {
-  margin: 0;
-  padding: 0;
+*,
+*::before,
+*::after {
   box-sizing: border-box;
-} */
+}
 
 body {
   margin: 0;
-  font-family: "Roboto", sans-serif;
-  background-color: #f8f9fa;
+  font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+  background-color: #faf8f3;
   overflow-x: hidden;
-}
-/* Landing page section */
-.landing {
-  /* position: relative; */
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 9px;
-  height: 100vh;
-  background: linear-gradient(#e7fff4, #e7fff4);
-}
-
-.landing .content h1 {
-  font-size: 2vw;
-  color: #04584b;
-  margin-bottom: 20px;
-  margin-left: 60px;
-  max-width: 700px;
-  z-index: 3;
-}
-
-.landing .content p {
-  color: #555;
-  font-size: 2vw;
-  margin-bottom: 20px;
-}
-
-.ellipse {
-  position: absolute;
-  display: flex;
-}
-
-.ellipse1 {
-  top: -110px;
-  left: 0;
-  width: 400px;
-  height: 400px;
-  z-index: 3;
-}
-
-.ellipse2 {
-  top: -14%;
-  left: -2%;
-  width: 800px;
-  height: 800px;
-}
-
-.ellipse3 {
-  bottom: 47%;
-  left: 60%;
-  width: 40%;
-  height: 67%;
-  z-index: 1;
-}
-
-.ellipse4 {
-  bottom: 0;
-  left: 40%;
-  top: -14%;
-  height: 109%;
-  width: 60%;
-}
-
-.image {
-  display: flex;
-  position: absolute;
-  top: 8.33rem;
-  left: 55.91rem;
-  transform: rotate(250deg);
-  /* width: 38%;
-  height: 60%; */
-  z-index: 1;
-  filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.6));
-}
-
-.get-started {
-  padding: 15px 30px;
-  margin-left: 60px;
-  background-color: #ff9f1c;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 1.4em;
-  transition: background-color 0.3s;
-  filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.4));
-  z-index: 2;
-}
-
-.get-started:hover {
-  background-color: #e88c14;
-}
-
-.image-section {
-  position: relative;
-  z-index: 2;
 }

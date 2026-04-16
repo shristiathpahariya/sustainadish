@@ -1,23 +1,22 @@
-// src/App.js
-import React from 'react';
-import Contactform from './Contactform';
-import Contactinfo from './Contactinfo';
-import Popup from './Popup';
-
+import React from "react";
+import Contactform from "./Contactform";
+import Contactinfo from "./Contactinfo";
+import "../contactus.css";
 
 const Fullcontact = () => {
-  const closeContact = () => {
-    document.querySelector('.container').style.display = 'none';
-  };
-
   return (
-    <div className="container">
-      <Contactinfo />
-      <Popup className="close-btn" onClick={closeContact}>
-        &times;
-      </Popup>
-      <Contactform />
-    </div>
+    <section className="contact-page" aria-label="Contact SustainaDish">
+      <div className="contact-page__inner">
+        <div className="contact-page__grid">
+          <aside className="contact-sidebar">
+            <Contactinfo />
+          </aside>
+          <div className="contact-main">
+            <Contactform />
+          </div>
+        </div>
+      </div>
+    </section>
   );
 };
 

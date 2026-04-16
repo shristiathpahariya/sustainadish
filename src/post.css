@@ -1,99 +1,280 @@
-.posts-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: center;
-  margin-top: 3%;
-  padding-left: 15%;
-  padding-right: 15%;
-}
+/* ── Posts section ── */
 
-.post-card {
-  width: 20%;
-  height: auto;
-  border: 1px solid #ddd;
-  overflow: hidden;
-  background: #fff;
-  box-shadow: 0 4px 6px rgba(1, 0, 0, 0.1);
+.posts-section {
+  position: relative;
+  z-index: 1;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
 }
 
 .postshead {
-  width: 100%;
-  text-align: center;
-  text-decoration: underline;
-  text-decoration-color: coral;
+  font-family: 'Playfair Display', serif;
+  font-size: 38px;
+  font-weight: 700;
+  font-style: italic;
+  color: #1a1a1a;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-bottom: 4px;
+  text-decoration: none;
+}
+
+.postshead-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #888780;
+  margin-bottom: 1.5rem;
+}
+
+.posts-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.post-card {
+  background: #fff;
+  border: 1.5px solid #1a1a1a;
+  cursor: pointer;
+  /* Resting state is visible; entrance uses gsap.from() so cards are never stuck invisible */
+  opacity: 1;
+  transform: translateY(0);
+  transition: transform 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* accent stripe at top of each card */
+.post-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #059669, #34d399, #d85a30, #d4537e);
+  z-index: 2;
+}
+
+.post-card:hover {
+  transform: translateY(-4px);
+}
+
+.post-card__delete {
+  position: absolute;
+  top: 10px;
+  right: 8px;
+  z-index: 4;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1a1a1a;
+  background: rgba(250, 248, 243, 0.95);
+  color: #881337;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.post-card__delete:hover:not(:disabled) {
+  background: #fff1f2;
+  transform: scale(1.05);
+}
+
+.post-card__delete:disabled {
+  opacity: 0.45;
+  cursor: wait;
 }
 
 .post-image {
   width: 100%;
-  height: 200px;
+  height: 190px;
   object-fit: cover;
+  display: block;
 }
 
-.post-details {
-  padding: 10px;
+.post-card-footer {
+  padding: 8px 10px;
+  border-top: 1px solid #e8e6e0;
+  background: #faf8f3;
 }
 
-.post-details p {
-  margin: 5px 0;
+.post-card-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: #888780;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
+
+.post-card-label::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d85a30;
+  flex-shrink: 0;
+}
+
+/* ── Popup ── */
 
 .popup-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  opacity: 0;
+  padding: 1rem;
+}
+
+.popup-overlay.active {
+  opacity: 1;
 }
 
 .popup-content {
-  background: #fff;
-  border-radius: 2px;
-  padding: 12px;
-  width: 80%;
-  max-width: 450px;
+  background: #faf8f3;
+  width: 100%;
+  max-width: 440px;
+  border: 2px solid #1a1a1a;
+  overflow: hidden;
   position: relative;
-  background-color: #f1f9e2;
+  transform: translateY(30px) scale(0.95);
 }
 
-.popup-content p {
-  font-size: 20px;
-  font-weight: 100;
-  color: #656363;
-  text-align: left;
+.popup-header-bar {
+  background: #1a1a1a;
+  padding: 9px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-.popup-content h1 {
-  font-size: 15px;
-  font-weight: 100;
-  color: #444646;
+
+.popup-header-bar span {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #faf8f3;
+}
+
+.close-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #faf8f3;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .popup-image {
   width: 100%;
-  border-radius: 2px;
+  height: 210px;
+  object-fit: cover;
+  display: block;
+  border-bottom: 2px solid #1a1a1a;
 }
 
 .popup-details {
-  margin-top: 20px;
+  padding: 1.25rem 1.5rem 1.5rem;
 }
 
-.close-btn {
-  background: #ff5555;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  padding: 10px 20px;
+.popup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 20px;
+  margin-bottom: 4px;
+}
+
+.popup-field {
+  margin-bottom: 14px;
+}
+
+.popup-field strong {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #d85a30;
+  margin-bottom: 3px;
+}
+
+.popup-field span {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  color: #1a1a1a;
+}
+
+.popup-recipe-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid #e8e6e0;
+}
+
+.recipe-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border: 1px solid #1a1a1a;
+  color: #1a1a1a;
+  background: transparent;
+}
+
+.popup-delete {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e8e6e0;
+}
+
+.popup-delete__btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  width: 100%;
+  padding: 10px 12px;
   cursor: pointer;
-  position: absolute;
-  top: 10px;
-  right: 10px;
+  border: 2px solid #1a1a1a;
+  background: #fff;
+  color: #881337;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.close-btn:hover {
-  background: #ff2222;
+.popup-delete__btn:hover:not(:disabled) {
+  background: #881337;
+  color: #faf8f3;
+  border-color: #881337;
+}
+
+.popup-delete__btn:disabled {
+  opacity: 0.45;
+  cursor: wait;
 }

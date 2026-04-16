@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import Popup from './Popup';
 import { apiUrl } from '../config';
 import '../../src/feedback.css';
 import { useNavigate } from 'react-router-dom';
+import { useMessageDialog } from '../context/MessageDialogContext';
 
 const Feedback = () => {
+  const { notifySuccess, notifyError, notifyInfo } = useMessageDialog();
   const [rating, setRating] = useState(null); 
   const [feedback, setFeedback] = useState('');
-  const [isPopupOpen, setIsPopupOpen] = useState(false); // Initially false to hide popup
   const [isFormVisible, setIsFormVisible] = useState(true); // Track visibility of the form
   const navigate = useNavigate()
 
@@ -22,12 +22,12 @@ const Feedback = () => {
   const handleSubmit = async () => {
     // Validate form inputs
     if (!rating) {
-      alert('Please select a rating before submitting.');
+      notifyInfo('Please select a star rating before submitting.', 'Rating required');
       return;
     }
 
     if (feedback.trim() === '') {
-      alert('Please provide feedback before submitting.');
+      notifyInfo('Please write a short comment in the feedback box.', 'Feedback required');
       return;
     }
 
@@ -48,20 +48,19 @@ const Feedback = () => {
         throw new Error(`Server error: ${response.status}`);
       }
 
-      const result = await response.json();
-      console.log('Server response:', result); // Log the response for debugging
+      await response.json();
 
-      // Open the Popup upon successful form submission
-      setIsPopupOpen(true);
+      setRating(null);
+      setFeedback('');
+      notifySuccess('Your feedback helps us improve SustainaDish.', 'Thank you');
     } catch (error) {
-      // Handle network errors
       console.error('Network error:', error);
-      alert(`Network error. Please try again later. Error: ${error.message}`);
+      notifyError(
+        error?.message
+          ? `We couldn't submit your feedback: ${error.message}`
+          : "We couldn't reach the server. Please try again shortly."
+      );
     }
-  };
-
-  const handleClosePopup = () => {
-    setIsPopupOpen(false);
   };
 
   const handleCloseForm=()=>{
@@ -92,21 +91,6 @@ const Feedback = () => {
       <div className="button-wrapper">
         <button type="button" onClick={handleSubmit} className='submit'>Submit</button>
       </div>
-
-      {/* Conditional Popup rendering */}
-      {isPopupOpen && (
-        <Popup
-          isOpen={isPopupOpen}
-          onRequestClose={handleClosePopup}
-          contentLabel="Thank You Popup"
-          className="thank-you-Popup"
-          overlayClassName="Popup-overlay"
-        >
-          <div className="Popup-content">
-            <p className='feedbackthanks'>Thank You for your Feedback!</p>
-          </div>
-        </Popup>
-      )}
     </div>
   );
 };

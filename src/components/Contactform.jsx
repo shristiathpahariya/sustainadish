@@ -1,25 +1,19 @@
-import React, { useState } from 'react';
-import Popup from './Popup'; // Make sure this path is correct
-import { apiUrl } from '../config';
-import '../.././src/contactus.css';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { apiUrl } from "../config";
+import { useMessageDialog } from "../context/MessageDialogContext";
 
 const Contactform = () => {
-  const [isPopupVisible, setPopupVisible] = useState(false); // Popup visibility state
-  const [isTermsChecked, setTermsChecked] = useState(false); // Checkbox state
-  const navigate = useNavigate();
+  const { notifySuccess, notifyError, notifyInfo } = useMessageDialog();
+  const [isTermsChecked, setTermsChecked] = useState(false);
 
-  // Function to handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Check if the user agreed to the terms
     if (!isTermsChecked) {
-      alert("Please agree to the terms and conditions.");
+      notifyInfo("Please agree to the terms and conditions before sending.", "Terms");
       return;
     }
 
-    // Collect form data
     const formData = {
       firstName: e.target.firstName.value,
       lastName: e.target.lastName.value,
@@ -30,88 +24,139 @@ const Contactform = () => {
     };
 
     try {
-      // Send data to the server
       const response = await fetch(`${apiUrl}/messages`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
 
-      // Check if the submission was successful
       if (response.ok) {
-        setPopupVisible(true); // Show the Popup on successful submission
-        e.target.reset(); // Reset the form fields
+        e.target.reset();
+        setTermsChecked(false);
+        notifySuccess(
+          "We'll get back to you within 24 hours.",
+          "Message sent"
+        );
       } else {
-        alert('Failed to send message');
+        notifyError("We couldn't send your message. Please try again in a moment.");
       }
     } catch (error) {
-      console.error('Error submitting the form:', error);
-      alert('Error sending message');
+      console.error("Error submitting the form:", error);
+      notifyError("Something went wrong while sending. Check your connection and try again.");
     }
-  };
-
-  // Function to close the Popup
-  const closePopup = () => {
-    setPopupVisible(false); // Close the popup
-    document.getElementById('contactForm').reset(); // Reset the form fields
-    setTermsChecked(false); // Reset the terms checkbox state
-  };
-  
-
-  // Function to navigate to the home page when the close button is clicked
-  const handleCloseForm = () => {
-    navigate('/');
   };
 
   return (
     <div className="contact-form">
-    <div onClick={handleCloseForm} className="contact-close-button">×</div>
+      <h2 className="contact-form__title">We&apos;d love to help</h2>
+      <p className="contact-form__subtitle">
+        Reach out and we&apos;ll get in touch within 24 hours.
+      </p>
 
-      <h2 className='lovetohelp'>We'd love to help</h2>
-      <h4 className='reachtohelp'>Reach out and we’ll get in touch within 24 hours.</h4>
-
-
-      <form id="contactForm" onSubmit={handleSubmit}>
-        <div className="name-fields">
-          <input type="text" name="firstName" placeholder="First Name" required />
-          <input type="text" name="lastName" placeholder="Last Name" required />
+      <form id="contactForm" className="contact-form__fields" onSubmit={handleSubmit} noValidate>
+        <div className="contact-form__grid2">
+          <div className="contact-form__field">
+            <label className="contact-form__label" htmlFor="contact-firstName">
+              First name
+            </label>
+            <input
+              id="contact-firstName"
+              type="text"
+              name="firstName"
+              placeholder="First name"
+              required
+              autoComplete="given-name"
+            />
+          </div>
+          <div className="contact-form__field">
+            <label className="contact-form__label" htmlFor="contact-lastName">
+              Last name
+            </label>
+            <input
+              id="contact-lastName"
+              type="text"
+              name="lastName"
+              placeholder="Last name"
+              required
+              autoComplete="family-name"
+            />
+          </div>
         </div>
-        <input type="email" name="email" placeholder="Email Address" required />
-        <div className="contact-fields">
-          <input type="text" name="contact" placeholder="Contact" required />
-          <input type="text" name="location" placeholder="Location" required />
-        </div>
-        <textarea name="message" placeholder="Type your message here" required></textarea>
 
-        {/* Checkbox for agreeing to terms */}
-        <div className="terms-container">
-          <input 
-            type="checkbox" 
-            id="terms-checkbox" 
-            name="terms" 
-            onChange={(e) => setTermsChecked(e.target.checked)} // Update state when checked
+        <div className="contact-form__field contact-form__field--full">
+          <label className="contact-form__label" htmlFor="contact-email">
+            Email
+          </label>
+          <input
+            id="contact-email"
+            type="email"
+            name="email"
+            placeholder="Email address"
+            required
+            autoComplete="email"
           />
-          <label htmlFor="terms-checkbox"> I've agreed to SustainaDish terms and conditions</label>
         </div>
 
-        <div className="button-container">
-          <button type="submit">Send Message</button>
+        <div className="contact-form__grid2">
+          <div className="contact-form__field">
+            <label className="contact-form__label" htmlFor="contact-phone">
+              Contact
+            </label>
+            <input
+              id="contact-phone"
+              type="text"
+              name="contact"
+              placeholder="Phone or preferred contact"
+              required
+              autoComplete="tel"
+            />
+          </div>
+          <div className="contact-form__field">
+            <label className="contact-form__label" htmlFor="contact-location">
+              Location
+            </label>
+            <input
+              id="contact-location"
+              type="text"
+              name="location"
+              placeholder="City or area"
+              required
+              autoComplete="address-level2"
+            />
+          </div>
+        </div>
+        <div className="contact-form__field contact-form__field--full">
+          <label className="contact-form__label" htmlFor="contact-message">
+            Message
+          </label>
+          <textarea
+            id="contact-message"
+            name="message"
+            placeholder="Type your message here"
+            required
+            rows={5}
+          />
+        </div>
+
+        <div className="contact-form__terms">
+          <input
+            type="checkbox"
+            id="terms-checkbox"
+            name="terms"
+            checked={isTermsChecked}
+            onChange={(e) => setTermsChecked(e.target.checked)}
+          />
+          <label htmlFor="terms-checkbox">
+            I agree to SustainaDish terms and conditions
+          </label>
+        </div>
+
+        <div className="contact-form__actions">
+          <button type="submit">Send message</button>
         </div>
       </form>
-
-      {/* Show Popup based on the state */}
-      {isPopupVisible && (
-        <Popup 
-          isOpen={isPopupVisible} 
-          onRequestClose={closePopup} 
-          className="popup-content" 
-          overlayClassName="popup-overlay"
-        >
-          <p>Thank you for reaching out! We'll get back to you soon.</p>
-        </Popup>
-      )}
     </div>
   );
 };

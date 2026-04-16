@@ -1,41 +1,54 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import '../.././src/footer.css'
+import { Link } from "react-router-dom";
+import "../footer.css";
 
-export default function Footer(){
-  const navigate = useNavigate()
+export default function Footer() {
+  return (
+    <footer className="site-footer">
+      <div className="site-footer__inner">
+        <div className="site-footer__top">
+          <Link to="/" className="site-footer__brand" aria-label="SustainaDish home">
+            <img src="/susss.png" alt="" className="site-footer__logo" />
+          </Link>
 
-    const handleClick=()=>{
-      navigate('/privacy')
-    }
+          <nav className="site-footer__nav" aria-label="Footer">
+            <p className="site-footer__nav-title">Quick links</p>
+            <ul className="site-footer__links">
+              <li>
+                <Link to="/terms" className="site-footer__link">
+                  Terms &amp; conditions
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy" className="site-footer__link">
+                  Privacy policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/feedback" className="site-footer__link">
+                  Feedback
+                </Link>
+              </li>
+              <li>
+                <Link to="/feed" className="site-footer__link">
+                  Community feed
+                </Link>
+              </li>
+              <li>
+                <Link to="/contactUs" className="site-footer__link">
+                  Contact us
+                </Link>
+              </li>
+            </ul>
+          </nav>
+        </div>
 
-    const handleClickTerms=()=>{
-      navigate('/terms')
-    }
-    const handleFeedback=()=>{
-      navigate('/feedback')
-    }
-    const handleContact=()=>{
-      navigate('/contactus')
-    }
-
-    return(
-        <footer className="Footer">
-            <div className="footer-top">
-<img src="/susss.png" alt="logo" className="footerImage" />
-<a className="feedback" onClick={handleFeedback}>Feedback</a>
-<div class="footer-links">
-        <p>Quick Link</p>
-        <a onClick={handleClickTerms}>Term & Conditions</a>
-        <a onClick={handleClick}>Privacy Policy</a>
+        <div className="site-footer__bottom">
+          <p className="site-footer__copy">
+            &copy; {new Date().getFullYear()} SustainaDish, Inc. All rights reserved.
+          </p>
+        </div>
       </div>
-      <div class="footer-contact">
-        <a onClick={handleContact}>Contact Us</a>
-      </div>
-      </div>
-      <div class="footer-bottom">
-      <p>&copy; 2024 sustainadish, inc. All Rights Reserved</p>
-    </div>
-        </footer>
-    )
+    </footer>
+  );
 }

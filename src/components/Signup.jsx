@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { apiUrl } from '../config';
+import { apiClient } from '../config';
 import styles from '../../src/Signup.module.css'; // Custom CSS
+import { useMessageDialog } from '../context/MessageDialogContext';
+import { useUser } from '../UserContext';
 
 
 const Signup = () => {
+  const { setUser } = useUser();
+  const { notifySuccess } = useMessageDialog();
     const [data, setData] = useState({
         firstName: '',
         lastName: '',
@@ -17,6 +20,7 @@ const Signup = () => {
     });
 
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleChange = ({ currentTarget: input }) => {
@@ -29,22 +33,33 @@ const Signup = () => {
             setError('Passwords do not match');
             return;
         }
+        
+        setLoading(true);
+        setError('');
+        
         try {
-            const url = `${apiUrl}/auth/register`;
-            const { data: res } = await axios.post(url, data);
-             // Store user details in localStorage after registration
-        const userData = {
-            name: `${data.firstName} ${data.lastName}`, 
-            email: data.email,
-            googleLogin: false, 
-        };
-        localStorage.setItem("user", JSON.stringify(userData));
-            navigate('/login');
-            console.log(res.message);
+            const response = await apiClient.post('/auth/register', data);
+            
+            // Store user details in localStorage after registration (token is in httpOnly cookie)
+            if (response.data && response.data.user) {
+                const userData = {
+                    _id: response.data.user._id,
+                    name: `${data.firstName} ${data.lastName}`, 
+                    email: data.email,
+                    googleLogin: false,
+                };
+                
+                localStorage.setItem("user", JSON.stringify(userData));
+                navigate('/login');
+            }
         } catch (error) {
             if (error.response && error.response.status >= 400 && error.response.status <= 500) {
-                setError(error.response.data.message);
+                setError(error.response.data.message || 'Registration failed. Please try again.');
+            } else {
+                setError('An unexpected error occurred. Please try again.');
             }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -60,12 +75,9 @@ const Signup = () => {
             googleLogin: true, // Set flag for Google login
           };
     
-          // Store user in localStorage
-          localStorage.setItem("user", JSON.stringify(userData));
-    
-    
-          // Navigate to the homepage
-          alert("SignUp with Google Successful!");
+          setUser(userData);
+
+          notifySuccess("Your Google account is ready to use.", "Welcome");
           navigate("/");
         }).catch((error) => {
           console.error("Google SignUp failed:", error);
@@ -130,7 +142,9 @@ const Signup = () => {
                             autoComplete="new-password"
                         />
                         {error && <div className={styles.error_msg}>{error}</div>}
-                        <button type="submit" className={styles.orange_btn}>Sign Up</button>
+                        <button type="submit" className={styles.orange_btn} disabled={loading}>
+                            {loading ? 'Creating Account...' : 'Sign Up'}
+                        </button>
 
                         <div className={styles.separator}><span>OR</span></div>
 

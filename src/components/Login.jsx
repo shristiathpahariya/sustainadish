@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { gapi } from "gapi-script"; // For Google OAuth
-import axios from "axios";
-import { apiUrl } from "../config";
+import { apiClient } from "../config";
 import styles from "../../src/Login.module.css"; // Custom CSS
+import { useMessageDialog } from "../context/MessageDialogContext";
+import { useUser } from "../UserContext";
 
 const Login = () => {
+  const { setUser } = useUser();
+  const { notifySuccess } = useMessageDialog();
   const [data, setData] = useState({
     email: "",
     password: "",
@@ -40,15 +43,13 @@ const Login = () => {
       const userData = {
         name: profile.getName(),
         email: profile.getEmail(),
-        googleLogin: true, // Set flag for Google login
+        googleLogin: true,
+        profilePicture: profile.getImageUrl(),
       };
 
-      // Store user in localStorage
-      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
 
-
-      // Navigate to the homepage
-      alert("Login with Google Successful!");
+      notifySuccess("You're signed in with Google.", "Welcome");
       navigate("/");
     }).catch((error) => {
       console.error("Google login failed:", error);
@@ -56,40 +57,39 @@ const Login = () => {
     });
   };
 
-  //  Handle form submission for traditional login
+  // Handle form submission for traditional login
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const url = `${apiUrl}/auth/login`;
-      const response = await axios.post(url, data);
-      if (response && response.data && response.data.token) {
-        localStorage.setItem("token", response.data.token); // Store the token
+      const response = await apiClient.post('/auth/login', data);
+      
+      if (response && response.data && response.data.user) {
+        const { user } = response.data;
+        
+        // Store user info in localStorage (token is now in httpOnly cookie)
+        const userData = {
+          _id: user._id,
+          name: user.firstName && user.lastName 
+                ? `${user.firstName} ${user.lastName}`
+                : data.email,
+          email: user.email,
+          googleLogin: user.googleLogin === true,
+          location: user.location,
+          contact: user.contact,
+          profilePicture: user.profilePicture || "/user.png",
+        };
 
-  // Assuming your backend returns firstName and lastName in response.data
-  const traditionalUserData = {
-    _id: response.data._id,
-    name: response.data.firstName && response.data.lastName 
-          ? `${response.data.firstName} ${response.data.lastName}`
-          : data.email, // Fallback to email if names are not provided
-    email: data.email,
-    googleLogin: false, // Flag for traditional login
-};
+        setUser(userData);
 
-    localStorage.setItem("user", JSON.stringify(traditionalUserData));
-
-        alert("Login Successfully");
+        notifySuccess("Welcome back to SustainaDish.", "Signed in");
         navigate("/");
       } else {
         setError("Invalid response from server. Please try again.");
       }
     } catch (error) {
-      if (
-        error.response &&
-        error.response.status >= 400 &&
-        error.response.status <= 500
-      ) {
+      if (error.response && error.response.status >= 400 && error.response.status <= 500) {
         setError(error.response.data.message);
       } else {
         setError("An unexpected error occurred. Please try again.");

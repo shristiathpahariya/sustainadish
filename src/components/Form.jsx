@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../UserContext';
 import { useNavigate } from "react-router-dom";
-import { apiUrl } from '../config';
+import { apiClient, apiUrl } from '../config';
 import '../.././src/form.css';
 
 const Form = () => {
@@ -83,21 +83,39 @@ const Form = () => {
     }
 
     try {
-      const response = await fetch(`${apiUrl}/messageForm`, {
-        method: 'POST',
-        body: formDataToSend
+      // Use axios with proper configuration for file upload
+      const response = await apiClient.post('/messageForm', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
-      if (response.ok) {
-        setSubmissionStatus('Thank you for submitting the donation!');
+      setSubmissionStatus('Thank you for submitting the donation!');
+      
+      // Clear form
+      setFormData({
+        donatedBy: user?.name || '',
+        contact: user?.contact || '',
+        email: user?.email || '',
+        item: '',
+        servings: '',
+        expiryDate: '',
+        pictures: null,
+        additionalInfo: ''
+      });
+      
+      // Navigate after short delay to show success message
+      setTimeout(() => {
         navigate('/profile');
-      } else {
-        const errorData = await response.json();
-        setSubmissionStatus(`Error: ${errorData.message}`);
-      }
+      }, 1500);
+      
     } catch (error) {
       console.error('Error:', error);
-      setSubmissionStatus('An error occurred while submitting the donation.');
+      if (error.response && error.response.data && error.response.data.error) {
+        setSubmissionStatus(`Error: ${error.response.data.error}`);
+      } else {
+        setSubmissionStatus('An error occurred while submitting the donation.');
+      }
     } finally {
       setLoading(false);
     }

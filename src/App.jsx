@@ -1,6 +1,7 @@
 // src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import './App.css';
 
 //components
 import About from './components/About';
@@ -73,9 +74,9 @@ function App() {
         <Route
           path="/contactUs"
           element={
-            <Minimal>
+            <MainLayout>
               <Fullcontact />
-            </Minimal>
+            </MainLayout>
           }
         />
         <Route
@@ -134,12 +135,12 @@ function App() {
             </Minimal>
           }
         />
-       <Route
+        <Route
           path="/feed"
           element={
-            <ProfileLayout>
+            <MainLayout>
               <Feed />
-            </ProfileLayout>
+            </MainLayout>
           }
         /> 
       </Routes>

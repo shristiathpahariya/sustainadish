@@ -1,0 +1,162 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:wght@400;700&display=swap");
+
+/* App-wide success / error / info dialogs (replaces native alert) */
+
+.app-message-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 4vw, 2rem);
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+  animation: app-message-overlay-in 0.22s ease-out;
+}
+
+@keyframes app-message-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.app-message-panel {
+  position: relative;
+  width: min(100%, 26rem);
+  background: #faf8f3;
+  border: 2px solid #1a1a1a;
+  box-shadow: 12px 12px 0 rgba(5, 150, 105, 0.14);
+  overflow: hidden;
+  animation: app-message-panel-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes app-message-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.app-message-panel__accent {
+  height: 6px;
+  width: 100%;
+}
+
+.app-message-panel--success .app-message-panel__accent {
+  background: linear-gradient(90deg, #047857 0%, #34d399 50%, #a7f3d0 100%);
+}
+
+.app-message-panel--error .app-message-panel__accent {
+  background: linear-gradient(90deg, #9f1239 0%, #e11d48 55%, #fda4af 100%);
+}
+
+.app-message-panel--info .app-message-panel__accent {
+  background: linear-gradient(90deg, #1e3a5f 0%, #3b82f6 55%, #93c5fd 100%);
+}
+
+.app-message-close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: #1a1a1a;
+  transition: color 0.2s ease, transform 0.15s ease;
+  padding: 0;
+}
+
+.app-message-close:hover {
+  color: #047857;
+  transform: scale(1.08);
+}
+
+.app-message-title {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(1.25rem, 2.5vw, 1.45rem);
+  font-weight: 700;
+  color: #064e3b;
+  margin: 0;
+  padding: 1.35rem 2.75rem 0.35rem 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+.app-message-panel--error .app-message-title {
+  color: #881337;
+}
+
+.app-message-panel--info .app-message-title {
+  color: #1e3a8a;
+}
+
+.app-message-body {
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 0.5rem 1.5rem 1.25rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.app-message-actions {
+  padding: 0 1.5rem 1.35rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.app-message-btn {
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.55rem 1.25rem;
+  cursor: pointer;
+  border: 2px solid #1a1a1a;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  color: #064e3b;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.app-message-btn:hover {
+  box-shadow: 4px 4px 0 rgba(5, 150, 105, 0.25);
+}
+
+.app-message-btn:active {
+  transform: translateY(1px);
+}
+
+.app-message-panel--error .app-message-btn {
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+  color: #881337;
+}
+
+.app-message-panel--error .app-message-btn:hover {
+  box-shadow: 4px 4px 0 rgba(225, 29, 72, 0.2);
+}
+
+.app-message-panel--info .app-message-btn {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af;
+}
+
+.app-message-panel--info .app-message-btn:hover {
+  box-shadow: 4px 4px 0 rgba(59, 130, 246, 0.25);
+}

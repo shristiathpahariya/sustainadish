@@ -28,6 +28,34 @@ CORS(app)
 # Initialize spellchecker
 spell = SpellChecker()
 
+# Global variables to cache ML models (load once at startup)
+combined_embeddings = None
+vectorizer = None
+sampled_data = None
+
+def load_ml_models():
+    """Load all ML models and data at startup"""
+    global combined_embeddings, vectorizer, sampled_data
+    try:
+        print("Loading ML models...")
+        with open('input/combined_embeddings.pkl', 'rb') as f:
+            combined_embeddings = pickle.load(f)
+        with open('input/tfidf_vectorizer.pkl', 'rb') as f:
+            vectorizer = pickle.load(f)
+        with open('input/sampled_data.pkl', 'rb') as f:
+            sampled_data = pickle.load(f)
+        print("ML models loaded successfully!")
+        return True
+    except FileNotFoundError as e:
+        print(f"Error loading ML models: {e}")
+        return False
+    except Exception as e:
+        print(f"Unexpected error loading ML models: {e}")
+        return False
+
+# Load models at startup
+models_loaded = load_ml_models()
+
 # Function to tokenize the recipe input
 def recipe_tokenizer(sentence):
     # Remove punctuation and set to lower case
@@ -47,53 +75,46 @@ def recipe_tokenizer(sentence):
 
     return listofstemmed_words
 
-# Function to load the combined embeddings and TF-IDF vectorizer model
-def load_embeddings_and_vectorizer():
-    with open('input/combined_embeddings.pkl', 'rb') as f:
-        combined_embeddings = pickle.load(f)
-    with open('input/tfidf_vectorizer.pkl', 'rb') as f:
-        vectorizer = pickle.load(f)
-    return combined_embeddings, vectorizer  
-
 # Function to find similar recipes and return Title, Ingredients (as a list), and Instructions
-def find_similar_recipes(sampled_data, user_input, num_similar=3):
+def find_similar_recipes(user_input, num_similar=3):
+    """Find similar recipes using cached ML models"""
+    if not models_loaded:
+        return None, "ML models not loaded. Please restart the service.", 500
+
     try:
-        # Load the combined embeddings and TF-IDF vectorizer
-        combined_embeddings, vectorizer = load_embeddings_and_vectorizer()
-    except FileNotFoundError:
-        return "Embeddings and vectorizer not found, please precompute embeddings first.", 500
+        # Process the user input (ingredient list)
+        user_input = user_input.lower()
+        user_data = pd.DataFrame({'text_data': [user_input]})
 
-    # Process the user input (ingredient list)
-    user_input = user_input.lower()
-    user_data = pd.DataFrame({'text_data': [user_input]})
+        # Vectorize the user input
+        user_vectorized_data = vectorizer.transform(user_data['text_data'])
 
-    # Vectorize the user input
-    user_vectorized_data = vectorizer.transform(user_data['text_data'])
+        # Ensure the number of features in user_vectorized_data matches combined_embeddings
+        num_missing_features = combined_embeddings.shape[1] - user_vectorized_data.shape[1]
+        if num_missing_features > 0:
+            # Add zero columns to match feature sizes
+            user_vectorized_data = np.pad(user_vectorized_data.toarray(), ((0, 0), (0, num_missing_features)))
 
-    # Ensure the number of features in user_vectorized_data matches combined_embeddings
-    num_missing_features = combined_embeddings.shape[1] - user_vectorized_data.shape[1]
-    if num_missing_features > 0:
-        # Add zero columns to match feature sizes
-        user_vectorized_data = np.pad(user_vectorized_data.toarray(), ((0, 0), (0, num_missing_features)))
+        # Apply ingredient weighting
+        ingredient_weight = 0.8
+        text_weight = 0.2
+        user_combined_embeddings = np.concatenate([user_vectorized_data * text_weight, np.zeros((1, 100))], axis=1)
 
-     # Apply ingredient weighting
-    ingredient_weight = 0.8
-    text_weight = 0.2
-    user_combined_embeddings = np.concatenate([user_vectorized_data * text_weight, np.zeros((1, 100))], axis=1)
+        # Compute cosine similarity between the user input and combined embeddings
+        cosine_sim_matrix = cosine_similarity(user_vectorized_data, combined_embeddings)
 
-    # Compute cosine similarity between the user input and combined embeddings
-    cosine_sim_matrix = cosine_similarity(user_vectorized_data, combined_embeddings)
+        # Get indices of the top similar recipes
+        similar_recipes = cosine_sim_matrix[0].argsort()[::-1][:num_similar]
 
-    # Get indices of the top similar recipes
-    similar_recipes = cosine_sim_matrix[0].argsort()[::-1][:num_similar]
+        # Fetch titles, ingredients, and instructions for the top similar recipes
+        similar_recipe_info = sampled_data.iloc[similar_recipes][['Title', 'Ingredients', 'Instructions']]
 
-    # Fetch titles, ingredients, and instructions for the top similar recipes
-    similar_recipe_info = sampled_data.iloc[similar_recipes][['Title', 'Ingredients', 'Instructions']]
+        # Split ingredients into list if they are stored as a string (assuming comma-separated)
+        similar_recipe_info['Ingredients'] = similar_recipe_info['Ingredients'].apply(lambda x: x.split(','))
 
-    # Split ingredients into list if they are stored as a string (assuming comma-separated)
-    similar_recipe_info['Ingredients'] = similar_recipe_info['Ingredients'].apply(lambda x: x.split(','))
-
-    return similar_recipe_info
+        return similar_recipe_info, None, None
+    except Exception as e:
+        return None, f"Error finding recipes: {str(e)}", 500
 
 
 def is_valid_input(user_input):
@@ -129,22 +150,20 @@ def recommend():
     if not is_valid_input(user_input):
         return jsonify({"message": "Input doesn't contain recognizable ingredients. Please enter valid ingredients."}), 400
 
-    try:
-        with open('input/sampled_data.pkl', 'rb') as f:
-            sampled_data = pickle.load(f)
-    except FileNotFoundError:
-        return jsonify({"message": "Sampled data not found, please upload the correct file."}), 500
+    if not user_input:
+        return jsonify({"message": "Please provide valid input."}), 400
 
-    if user_input:
-        recommendations = find_similar_recipes(sampled_data, user_input)
+    # Use the cached models for faster response
+    recommendations, error_message, status_code = find_similar_recipes(user_input)
 
-        if not recommendations.empty:
-            recommendations_list = recommendations.to_dict(orient='records')
-            return jsonify(recommendations_list)
-        else:
-            return jsonify({"message": "No recommendations found. Try entering different ingredients."}), 404
+    if error_message:
+        return jsonify({"message": error_message}), status_code or 500
 
-    return jsonify({"message": "Please provide valid input."}), 400
+    if recommendations is not None and not recommendations.empty:
+        recommendations_list = recommendations.to_dict(orient='records')
+        return jsonify(recommendations_list)
+    else:
+        return jsonify({"message": "No recommendations found. Try entering different ingredients."}), 404
 
 
 
