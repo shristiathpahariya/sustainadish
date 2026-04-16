@@ -33,6 +33,25 @@ combined_embeddings = None
 vectorizer = None
 sampled_data = None
 
+# Must be defined before load_ml_models(): pickled TfidfVectorizer references __main__.recipe_tokenizer
+def recipe_tokenizer(sentence):
+    # Remove punctuation and set to lower case
+    for punctuation_mark in string.punctuation:
+        sentence = sentence.replace(punctuation_mark, '').lower()
+
+    # Split sentence into words
+    listofwords = sentence.split(' ')
+    listofstemmed_words = []
+
+    # Remove stopwords and stem words
+    for word in listofwords:
+        if (word not in ENGLISH_STOP_WORDS) and (word != ''):
+            # Stem words
+            stemmed_word = stemmer.stem(word)
+            listofstemmed_words.append(stemmed_word)
+
+    return listofstemmed_words
+
 def load_ml_models():
     """Load all ML models and data at startup"""
     global combined_embeddings, vectorizer, sampled_data
@@ -55,25 +74,6 @@ def load_ml_models():
 
 # Load models at startup
 models_loaded = load_ml_models()
-
-# Function to tokenize the recipe input
-def recipe_tokenizer(sentence):
-    # Remove punctuation and set to lower case
-    for punctuation_mark in string.punctuation:
-        sentence = sentence.replace(punctuation_mark, '').lower()
-
-    # Split sentence into words
-    listofwords = sentence.split(' ')
-    listofstemmed_words = []
-
-    # Remove stopwords and stem words
-    for word in listofwords:
-        if (word not in ENGLISH_STOP_WORDS) and (word != ''):
-            # Stem words
-            stemmed_word = stemmer.stem(word)
-            listofstemmed_words.append(stemmed_word)
-
-    return listofstemmed_words
 
 # Function to find similar recipes and return Title, Ingredients (as a list), and Instructions
 def find_similar_recipes(user_input, num_similar=3):
