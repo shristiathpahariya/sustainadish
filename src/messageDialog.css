@@ -62,6 +62,14 @@
   background: linear-gradient(90deg, #1e3a5f 0%, #3b82f6 55%, #93c5fd 100%);
 }
 
+.app-message-panel--confirm .app-message-panel__accent {
+  background: linear-gradient(90deg, #9a3412 0%, #d85a30 50%, #fdba74 100%);
+}
+
+.app-message-panel--confirm .app-message-title {
+  color: #7c2d12;
+}
+
 .app-message-close {
   position: absolute;
   top: 0.65rem;
@@ -121,6 +129,12 @@
   justify-content: flex-end;
 }
 
+.app-message-actions--split {
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .app-message-btn {
   font-family: "Space Mono", ui-monospace, monospace;
   font-size: 0.82rem;
@@ -159,4 +173,24 @@
 
 .app-message-panel--info .app-message-btn:hover {
   box-shadow: 4px 4px 0 rgba(59, 130, 246, 0.25);
+}
+
+.app-message-btn--ghost {
+  background: #fff !important;
+  color: #44403c !important;
+  border-color: #a8a29e !important;
+}
+
+.app-message-btn--ghost:hover {
+  box-shadow: 4px 4px 0 rgba(120, 113, 108, 0.2) !important;
+}
+
+.app-message-btn--danger {
+  background: linear-gradient(135deg, #fff1f2 0%, #fecdd3 100%) !important;
+  color: #9f1239 !important;
+  border-color: #9f1239 !important;
+}
+
+.app-message-btn--danger:hover {
+  box-shadow: 4px 4px 0 rgba(190, 18, 60, 0.25) !important;
 }

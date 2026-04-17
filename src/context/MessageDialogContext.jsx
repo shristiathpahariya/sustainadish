@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
@@ -11,17 +12,19 @@ import "../messageDialog.css";
 
 const MessageDialogContext = createContext(null);
 
-function MessageDialogPortal({ state, onClose }) {
-  const { open, variant, title, message } = state;
+function MessageDialogPortal({ state, onDismiss, onConfirmAction }) {
+  const { open, variant, title, message, confirmLabel } = state;
+  const isConfirm = variant === "confirm";
+  const primaryLabel = typeof confirmLabel === "string" && confirmLabel.trim() ? confirmLabel.trim() : "Remove";
 
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onDismiss();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onDismiss]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -42,15 +45,15 @@ function MessageDialogPortal({ state, onClose }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="app-message-title"
-      onClick={onClose}
+      onClick={onDismiss}
     >
       <div className={panelClass} onClick={(e) => e.stopPropagation()}>
         <div className="app-message-panel__accent" aria-hidden />
         <button
           type="button"
           className="app-message-close"
-          onClick={onClose}
-          aria-label="Close"
+          onClick={onDismiss}
+          aria-label={isConfirm ? "Cancel" : "Close"}
         >
           ×
         </button>
@@ -58,11 +61,30 @@ function MessageDialogPortal({ state, onClose }) {
           {title}
         </h2>
         <p className="app-message-body">{message}</p>
-        <div className="app-message-actions">
-          <button type="button" className="app-message-btn" onClick={onClose}>
-            OK
-          </button>
-        </div>
+        {isConfirm ? (
+          <div className="app-message-actions app-message-actions--split">
+            <button
+              type="button"
+              className="app-message-btn app-message-btn--ghost"
+              onClick={onDismiss}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="app-message-btn app-message-btn--danger"
+              onClick={onConfirmAction}
+            >
+              {primaryLabel}
+            </button>
+          </div>
+        ) : (
+          <div className="app-message-actions">
+            <button type="button" className="app-message-btn" onClick={onDismiss}>
+              OK
+            </button>
+          </div>
+        )}
       </div>
     </div>,
     document.body
@@ -75,9 +97,25 @@ export function MessageDialogProvider({ children }) {
     variant: "info",
     title: "",
     message: "",
+    confirmLabel: "Remove",
   });
+  const confirmResolverRef = useRef(null);
 
-  const close = useCallback(() => {
+  const dismiss = useCallback(() => {
+    setState((s) => {
+      if (s.open && s.variant === "confirm" && confirmResolverRef.current) {
+        const fn = confirmResolverRef.current;
+        confirmResolverRef.current = null;
+        queueMicrotask(() => fn(false));
+      }
+      return { ...s, open: false };
+    });
+  }, []);
+
+  const confirmAction = useCallback(() => {
+    const fn = confirmResolverRef.current;
+    confirmResolverRef.current = null;
+    if (fn) fn(true);
     setState((s) => ({ ...s, open: false }));
   }, []);
 
@@ -87,6 +125,7 @@ export function MessageDialogProvider({ children }) {
       variant: "success",
       title,
       message: String(message),
+      confirmLabel: "Remove",
     });
   }, []);
 
@@ -96,6 +135,7 @@ export function MessageDialogProvider({ children }) {
       variant: "error",
       title,
       message: String(message),
+      confirmLabel: "Remove",
     });
   }, []);
 
@@ -105,18 +145,43 @@ export function MessageDialogProvider({ children }) {
       variant: "info",
       title,
       message: String(message),
+      confirmLabel: "Remove",
+    });
+  }, []);
+
+  /** Promise resolves `true` if user confirms, `false` if cancelled or dismissed. Optional `{ confirmLabel }` for the primary button. */
+  const notifyConfirm = useCallback((message, title = "Confirm", options = {}) => {
+    const label =
+      typeof options.confirmLabel === "string" && options.confirmLabel.trim()
+        ? options.confirmLabel.trim()
+        : "Remove";
+    return new Promise((resolve) => {
+      confirmResolverRef.current = resolve;
+      setState({
+        open: true,
+        variant: "confirm",
+        title,
+        message: String(message),
+        confirmLabel: label,
+      });
     });
   }, []);
 
   const value = useMemo(
-    () => ({ notifySuccess, notifyError, notifyInfo, close }),
-    [notifySuccess, notifyError, notifyInfo, close]
+    () => ({
+      notifySuccess,
+      notifyError,
+      notifyInfo,
+      notifyConfirm,
+      close: dismiss,
+    }),
+    [notifySuccess, notifyError, notifyInfo, notifyConfirm, dismiss]
   );
 
   return (
     <MessageDialogContext.Provider value={value}>
       {children}
-      <MessageDialogPortal state={state} onClose={close} />
+      <MessageDialogPortal state={state} onDismiss={dismiss} onConfirmAction={confirmAction} />
     </MessageDialogContext.Provider>
   );
 }

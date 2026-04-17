@@ -23,7 +23,7 @@ const canDeletePost = (post, user) => {
 
 const Profile = () => {
   const { user } = useUser();
-  const { notifySuccess, notifyError } = useMessageDialog();
+  const { notifySuccess, notifyError, notifyConfirm } = useMessageDialog();
   const navigate = useNavigate();
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
@@ -149,13 +149,12 @@ const Profile = () => {
     if (event) event.stopPropagation();
     if (!canDeletePost(post, user)) return;
     const id = post._id;
-    if (
-      !window.confirm(
-        "Remove this donation from the community feed? This cannot be undone."
-      )
-    ) {
-      return;
-    }
+    const ok = await notifyConfirm(
+      "Remove this donation from the community feed? This cannot be undone.",
+      "Remove donation",
+      { confirmLabel: "Delete" }
+    );
+    if (!ok) return;
     setDeletingId(id);
     try {
       await apiClient.delete(`/donations/${id}`);
@@ -178,7 +177,12 @@ const Profile = () => {
   const handleRemoveSavedRecipe = async (recipeMongoId, event) => {
     if (event) event.stopPropagation();
     if (!recipeMongoId) return;
-    if (!window.confirm("Remove this recipe from your saved list?")) return;
+    const ok = await notifyConfirm(
+      "Remove this recipe from your saved list? This cannot be undone.",
+      "Remove saved recipe",
+      { confirmLabel: "Remove" }
+    );
+    if (!ok) return;
     setRemovingSavedRecipeId(recipeMongoId);
     try {
       await apiClient.delete(`/saved-recipes/recipe/${recipeMongoId}`);
@@ -426,7 +430,10 @@ const Profile = () => {
       {/* ── Saved recipe popup ── */}
       {selectedSaved && selectedSaved.recipe && (
         <div className="popup-overlay active" onClick={closeSavedRecipePopup}>
-          <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="popup-content popup-content--saved-recipe"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="popup-header-bar">
               <span>Saved recipe</span>
               <button
@@ -438,43 +445,45 @@ const Profile = () => {
                 ✕
               </button>
             </div>
-            <div className="popup-details">
-              <h3 className="saved-recipe-popup__title">{selectedSaved.recipe.title}</h3>
-              <div className="popup-field saved-recipe-popup__block">
-                <strong>Ingredients</strong>
-                {splitIngredients(selectedSaved.recipe.ingredients).length > 0 ? (
-                  <ul className="saved-recipe-popup__list">
-                    {splitIngredients(selectedSaved.recipe.ingredients).map((line, idx) => (
-                      <li key={idx}>{line}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p style={{ fontStyle: "italic", color: "#888780", margin: 0 }}>None listed.</p>
-                )}
-              </div>
-              <div className="popup-field saved-recipe-popup__block">
-                <strong>Instructions</strong>
-                {splitInstructions(selectedSaved.recipe.instructions).length > 0 ? (
-                  <ol className="saved-recipe-popup__steps">
-                    {splitInstructions(selectedSaved.recipe.instructions).map((step, idx) => (
-                      <li key={idx}>{step}</li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p style={{ fontStyle: "italic", color: "#888780", margin: 0 }}>None listed.</p>
-                )}
-              </div>
-              <div className="saved-recipe-popup__actions">
-                <button
-                  type="button"
-                  className="saved-recipe-popup__remove-btn"
-                  disabled={removingSavedRecipeId === selectedSaved.recipe._id}
-                  onClick={() => handleRemoveSavedRecipe(selectedSaved.recipe._id)}
-                >
-                  {removingSavedRecipeId === selectedSaved.recipe._id
-                    ? "Removing…"
-                    : "Remove from saved"}
-                </button>
+            <div className="saved-recipe-popup__scroll">
+              <div className="popup-details">
+                <h3 className="saved-recipe-popup__title">{selectedSaved.recipe.title}</h3>
+                <div className="popup-field saved-recipe-popup__block">
+                  <strong>Ingredients</strong>
+                  {splitIngredients(selectedSaved.recipe.ingredients).length > 0 ? (
+                    <ul className="saved-recipe-popup__list">
+                      {splitIngredients(selectedSaved.recipe.ingredients).map((line, idx) => (
+                        <li key={idx}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={{ fontStyle: "italic", color: "#888780", margin: 0 }}>None listed.</p>
+                  )}
+                </div>
+                <div className="popup-field saved-recipe-popup__block">
+                  <strong>Instructions</strong>
+                  {splitInstructions(selectedSaved.recipe.instructions).length > 0 ? (
+                    <ol className="saved-recipe-popup__steps">
+                      {splitInstructions(selectedSaved.recipe.instructions).map((step, idx) => (
+                        <li key={idx}>{step}</li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p style={{ fontStyle: "italic", color: "#888780", margin: 0 }}>None listed.</p>
+                  )}
+                </div>
+                <div className="saved-recipe-popup__actions">
+                  <button
+                    type="button"
+                    className="saved-recipe-popup__remove-btn"
+                    disabled={removingSavedRecipeId === selectedSaved.recipe._id}
+                    onClick={() => handleRemoveSavedRecipe(selectedSaved.recipe._id)}
+                  >
+                    {removingSavedRecipeId === selectedSaved.recipe._id
+                      ? "Removing…"
+                      : "Remove from saved"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

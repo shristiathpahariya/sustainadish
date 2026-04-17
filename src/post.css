@@ -278,3 +278,23 @@
   opacity: 0.45;
   cursor: wait;
 }
+
+/* Saved recipe on profile — scroll long ingredients / instructions */
+.popup-content--saved-recipe {
+  max-height: min(90vh, 640px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.popup-content--saved-recipe .saved-recipe-popup__scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.popup-content--saved-recipe .popup-details {
+  padding-bottom: 1.5rem;
+}
