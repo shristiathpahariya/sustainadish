@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { mlApiUrl } from "../config";
+import { mlApiUrl, apiClient } from "../config";
+import { useUser } from "../UserContext";
+import { useMessageDialog } from "../context/MessageDialogContext";
+import { buildRecipeKey } from "../utils/recipeKey";
+import { splitIngredients, splitInstructions } from "../utils/recipeText";
 import "../recipe.css";
 
 /** Stub for future analytics (e.g. POST /api/events). Call when user opens full recipe detail. */
@@ -10,35 +14,9 @@ function logRecipeOpen(payload) {
   }
 }
 
-const splitIngredients = (raw) => {
-  if (raw == null) return [];
-  if (Array.isArray(raw)) return raw.map(String).map((s) => s.trim()).filter(Boolean);
-  const s = String(raw).trim();
-  if (!s) return [];
-  const parts = s.split(",").map((x) => x.trim()).filter(Boolean);
-  if (parts.length > 1) return parts;
-  return s
-    .split(/\n+/)
-    .map((x) => x.trim())
-    .filter(Boolean);
-};
-
-const splitInstructions = (raw) => {
-  if (raw == null) return [];
-  const s = String(raw).trim();
-  if (!s) return [];
-  const bySentence = s
-    .replace(/\d+\.\s/g, "")
-    .split(/[.!?]\s+/)
-    .map((step) => step.trim())
-    .filter(Boolean);
-  if (bySentence.length > 1) return bySentence;
-  const byLine = s.split(/\n+/).map((x) => x.trim()).filter(Boolean);
-  if (byLine.length > 1) return byLine;
-  return [s];
-};
-
 const RecipeRecommendation = () => {
+  const { user } = useUser();
+  const { notifySuccess, notifyError } = useMessageDialog();
   const [ingredients, setIngredients] = useState("");
   const [recipes, setRecipes] = useState([]);
   const [error, setError] = useState("");
@@ -46,6 +24,10 @@ const RecipeRecommendation = () => {
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const dialogRef = useRef(null);
+  const [savedKeySet, setSavedKeySet] = useState(() => new Set());
+  const [recipeHashes, setRecipeHashes] = useState([]);
+  const [savingRecipe, setSavingRecipe] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const selectedRecipe =
     selectedIndex !== null && selectedIndex < recipes.length ? recipes[selectedIndex] : null;
@@ -74,7 +56,47 @@ const RecipeRecommendation = () => {
 
   const handleDialogClose = () => {
     setSelectedIndex(null);
+    setSaveError("");
   };
+
+  useEffect(() => {
+    if (!user) {
+      setSavedKeySet(new Set());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await apiClient.get("/saved-recipe-keys");
+        const keys = Array.isArray(data?.recipeKeys) ? data.recipeKeys : [];
+        if (!cancelled) setSavedKeySet(new Set(keys));
+      } catch {
+        if (!cancelled) setSavedKeySet(new Set());
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!recipes.length) {
+      setRecipeHashes([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const hashes = await Promise.all(
+        recipes.map((r) =>
+          buildRecipeKey(r.Title ?? r.title ?? "", r.Ingredients ?? r.ingredients ?? "")
+        )
+      );
+      if (!cancelled) setRecipeHashes(hashes);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [recipes]);
 
   const openRecipeDetail = (index) => {
     const recipe = recipes[index];
@@ -88,6 +110,37 @@ const RecipeRecommendation = () => {
       searchQuery: ingredients.trim(),
     });
     setSelectedIndex(index);
+    setSaveError("");
+  };
+
+  const handleSaveRecipe = async () => {
+    if (!selectedRecipe || !user) return;
+    setSavingRecipe(true);
+    setSaveError("");
+    try {
+      const { data } = await apiClient.post("/saved-recipes", {
+        title: modalTitle,
+        ingredients: selectedRecipe.Ingredients ?? selectedRecipe.ingredients,
+        instructions: selectedRecipe.Instructions ?? selectedRecipe.instructions ?? "",
+      });
+      const key = data?.recipe?.recipeKey;
+      if (key) {
+        setSavedKeySet((prev) => new Set([...prev, key]));
+      }
+      notifySuccess(
+        data?.alreadySaved ? "Already in your profile." : "Saved to your profile.",
+        "Recipes"
+      );
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Could not save this recipe.";
+      setSaveError(typeof msg === "string" ? msg : "Could not save.");
+      notifyError(typeof msg === "string" ? msg : "Could not save this recipe.");
+    } finally {
+      setSavingRecipe(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -206,7 +259,12 @@ const RecipeRecommendation = () => {
                   Recipe {index + 1}
                   {recipes.length > 1 ? ` of ${recipes.length}` : ""}
                 </p>
-                <h2 className="recipe-card__title">{title}</h2>
+                <h2 className="recipe-card__title">
+                  {title}
+                  {recipeHashes[index] && savedKeySet.has(recipeHashes[index]) ? (
+                    <span className="recipe-card__saved-badge">Saved</span>
+                  ) : null}
+                </h2>
                 {ingredientList.length > 0 ? (
                   <p className="recipe-card__preview-line">
                     {previewItems.join(" · ")}
@@ -282,6 +340,37 @@ const RecipeRecommendation = () => {
               ) : (
                 <p className="recipe-card__empty-part">No instructions included.</p>
               )}
+              <div className="recipe-modal__footer">
+                {user ? (
+                  <>
+                    <button
+                      type="button"
+                      className="recipe-modal__btn-save"
+                      onClick={handleSaveRecipe}
+                      disabled={
+                        savingRecipe ||
+                        (recipeHashes[selectedIndex] &&
+                          savedKeySet.has(recipeHashes[selectedIndex]))
+                      }
+                    >
+                      {recipeHashes[selectedIndex] && savedKeySet.has(recipeHashes[selectedIndex])
+                        ? "Saved to profile"
+                        : savingRecipe
+                          ? "Saving…"
+                          : "Save to profile"}
+                    </button>
+                    {saveError ? (
+                      <p className="recipe-modal__save-error" role="alert">
+                        {saveError}
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="recipe-modal__login-hint">
+                    <Link to="/login">Sign in</Link> to save recipes to your profile.
+                  </p>
+                )}
+              </div>
             </div>
           ) : null}
         </dialog>

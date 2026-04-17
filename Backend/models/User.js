@@ -97,9 +97,11 @@ userSchema.methods.toJSON = function () {
 userSchema.post(['findOneAndDelete', 'findByIdAndDelete'], async function (doc) {
   if (!doc) return;
   const Donation = require('./Donation');
+  const SavedRecipe = require('./SavedRecipe');
   await Donation.deleteMany({
     $or: [{ userId: doc._id }, { email: doc.email }],
   });
+  await SavedRecipe.deleteMany({ user: doc._id });
 });
 
 const User = mongoose.model('User', userSchema);

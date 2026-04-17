@@ -6,6 +6,7 @@ import "../.././src/Profile.css";
 import { useUser } from "../UserContext";
 import { useMessageDialog } from "../context/MessageDialogContext";
 import { apiClient, apiUrl } from "../config";
+import { splitIngredients, splitInstructions } from "../utils/recipeText";
 import "../.././src/post.css";
 
 const canDeletePost = (post, user) => {
@@ -37,6 +38,10 @@ const Profile = () => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [savedRecipes, setSavedRecipes] = useState([]);
+  const [loadingSaved, setLoadingSaved] = useState(true);
+  const [selectedSaved, setSelectedSaved] = useState(null);
+  const [removingSavedRecipeId, setRemovingSavedRecipeId] = useState(null);
   const postsContainerRef = useRef(null);
 
   useEffect(() => {
@@ -80,6 +85,30 @@ const Profile = () => {
       }
     };
     fetchUserDonations();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchSavedRecipes = async () => {
+      const uid = user?._id || user?.id;
+      if (!user || !uid) {
+        setSavedRecipes([]);
+        setLoadingSaved(false);
+        return;
+      }
+      setLoadingSaved(true);
+      try {
+        const response = await apiClient.get("/saved-recipes");
+        const list = Array.isArray(response.data?.savedRecipes) ? response.data.savedRecipes : [];
+        setSavedRecipes(list);
+      } catch (error) {
+        console.error("Error fetching saved recipes:", error);
+        if (error.response?.status === 401) navigateRef.current("/login");
+        setSavedRecipes([]);
+      } finally {
+        setLoadingSaved(false);
+      }
+    };
+    fetchSavedRecipes();
   }, [user]);
 
   // Profile entrance
@@ -144,6 +173,40 @@ const Profile = () => {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handleRemoveSavedRecipe = async (recipeMongoId, event) => {
+    if (event) event.stopPropagation();
+    if (!recipeMongoId) return;
+    if (!window.confirm("Remove this recipe from your saved list?")) return;
+    setRemovingSavedRecipeId(recipeMongoId);
+    try {
+      await apiClient.delete(`/saved-recipes/recipe/${recipeMongoId}`);
+      setSavedRecipes((prev) =>
+        prev.filter((row) => String(row.recipe?._id) !== String(recipeMongoId))
+      );
+      if (selectedSaved && String(selectedSaved.recipe?._id) === String(recipeMongoId)) {
+        setSelectedSaved(null);
+      }
+      notifySuccess("Recipe removed from your profile.", "Saved recipes");
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Could not remove this recipe.";
+      notifyError(typeof msg === "string" ? msg : "Could not remove recipe.");
+    } finally {
+      setRemovingSavedRecipeId(null);
+    }
+  };
+
+  const openSavedRecipePopup = (row) => {
+    setSelectedSaved(row);
+  };
+
+  const closeSavedRecipePopup = (e) => {
+    if (e && e.target !== e.currentTarget) return;
+    setSelectedSaved(null);
   };
 
   const handlePostClick = (post) => {
@@ -227,6 +290,75 @@ const Profile = () => {
         </div>
       </div>
 
+      {/* ── Saved recipes ── */}
+      <div className="separator-editorial">
+        <div className="separator-inner">
+          <div className="sep-line" />
+          <div className="sep-diamond" />
+          <span className="sep-label">Saved recipes</span>
+          <div className="sep-diamond" />
+          <div className="sep-line" />
+        </div>
+      </div>
+
+      <div className="posts-section profile-saved-wrap">
+        <p className="postshead">Recipe saves</p>
+        <p className="postshead-sub">From your recommendation searches</p>
+        <div className="saved-recipes-grid">
+          {loadingSaved ? (
+            <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, color: "#888780" }}>
+              Loading saved recipes…
+            </p>
+          ) : savedRecipes.length > 0 ? (
+            savedRecipes.map((row) => {
+              const rec = row.recipe;
+              if (!rec) return null;
+              const rid = rec._id;
+              return (
+                <div
+                  key={row._id}
+                  className="saved-recipe-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openSavedRecipePopup(row)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openSavedRecipePopup(row);
+                    }
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="saved-recipe-card__remove"
+                    aria-label={`Remove ${rec.title || "recipe"}`}
+                    disabled={removingSavedRecipeId === rid}
+                    onClick={(e) => handleRemoveSavedRecipe(rid, e)}
+                  >
+                    <Trash2 size={16} strokeWidth={2} aria-hidden />
+                  </button>
+                  <div className="saved-recipe-card__title">{rec.title}</div>
+                  {row.savedAt && (
+                    <div className="saved-recipe-card__meta">
+                      Saved{" "}
+                      {new Date(row.savedAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, color: "#888780" }}>
+              No saved recipes yet. Open Recommendations and save a recipe you like.
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* ── Editorial divider ── */}
       <div className="separator-editorial">
         <div className="separator-inner">
@@ -290,6 +422,64 @@ const Profile = () => {
           )}
         </div>
       </div>
+
+      {/* ── Saved recipe popup ── */}
+      {selectedSaved && selectedSaved.recipe && (
+        <div className="popup-overlay active" onClick={closeSavedRecipePopup}>
+          <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header-bar">
+              <span>Saved recipe</span>
+              <button
+                type="button"
+                className="close-btn"
+                onClick={() => setSelectedSaved(null)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="popup-details">
+              <h3 className="saved-recipe-popup__title">{selectedSaved.recipe.title}</h3>
+              <div className="popup-field saved-recipe-popup__block">
+                <strong>Ingredients</strong>
+                {splitIngredients(selectedSaved.recipe.ingredients).length > 0 ? (
+                  <ul className="saved-recipe-popup__list">
+                    {splitIngredients(selectedSaved.recipe.ingredients).map((line, idx) => (
+                      <li key={idx}>{line}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ fontStyle: "italic", color: "#888780", margin: 0 }}>None listed.</p>
+                )}
+              </div>
+              <div className="popup-field saved-recipe-popup__block">
+                <strong>Instructions</strong>
+                {splitInstructions(selectedSaved.recipe.instructions).length > 0 ? (
+                  <ol className="saved-recipe-popup__steps">
+                    {splitInstructions(selectedSaved.recipe.instructions).map((step, idx) => (
+                      <li key={idx}>{step}</li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p style={{ fontStyle: "italic", color: "#888780", margin: 0 }}>None listed.</p>
+                )}
+              </div>
+              <div className="saved-recipe-popup__actions">
+                <button
+                  type="button"
+                  className="saved-recipe-popup__remove-btn"
+                  disabled={removingSavedRecipeId === selectedSaved.recipe._id}
+                  onClick={() => handleRemoveSavedRecipe(selectedSaved.recipe._id)}
+                >
+                  {removingSavedRecipeId === selectedSaved.recipe._id
+                    ? "Removing…"
+                    : "Remove from saved"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Popup ── */}
       {selectedPost && (

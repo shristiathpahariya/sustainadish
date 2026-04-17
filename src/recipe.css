@@ -476,6 +476,77 @@
   outline-offset: 2px;
 }
 
+.recipe-modal__footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(26, 26, 26, 0.12);
+}
+
+.recipe-modal__btn-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border: 2px solid #047857;
+  background: linear-gradient(135deg, #047857 0%, var(--rp-green) 55%, #10b981 100%);
+  color: #faf8f3;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.recipe-modal__btn-save:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.recipe-modal__btn-save:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.recipe-modal__btn-save:focus-visible {
+  outline: 2px solid var(--rp-green-deep);
+  outline-offset: 3px;
+}
+
+.recipe-modal__save-error {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  color: #b91c1c;
+  margin: 0.5rem 0 0;
+}
+
+.recipe-modal__login-hint {
+  font-family: "Playfair Display", serif;
+  font-size: 0.95rem;
+  color: #5f5e5a;
+  margin: 0;
+}
+
+.recipe-modal__login-hint a {
+  color: var(--rp-green-deep);
+  font-weight: 700;
+}
+
+.recipe-card__saved-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 2px 8px;
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  color: var(--rp-green-deep);
+  border: 1px solid rgba(5, 150, 105, 0.45);
+  background: rgba(209, 250, 229, 0.5);
+}
+
 .recipe-card__instructions-fallback {
   font-family: "Playfair Display", serif;
   font-size: 0.98rem;
