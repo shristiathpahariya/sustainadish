@@ -18,11 +18,19 @@ const { sanitizeInput } = require('./middleware/validationMiddleware');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  credentials: true
-}));
+// Middleware — `origin: true` reflects the request Origin so credentialed requests work
+// when the SPA (e.g. Vercel) and API (e.g. Render) are on different hosts. `origin: '*'`
+// is invalid with `credentials: true` and breaks cookies/headers in browsers.
+const corsOrigin =
+  process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*'
+    ? process.env.CORS_ORIGIN
+    : true;
+app.use(
+  cors({
+    origin: corsOrigin,
+    credentials: true,
+  })
+);
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));

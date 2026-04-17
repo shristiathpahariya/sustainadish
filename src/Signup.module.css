@@ -204,6 +204,17 @@
   flex-shrink: 0;
 }
 
+.google_gsi_wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.google_gsi_mount {
+  min-height: 44px;
+}
+
 .login_prompt {
   margin-top: 1rem;
   text-align: center;

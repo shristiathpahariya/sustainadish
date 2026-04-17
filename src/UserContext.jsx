@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { apiClient } from './config';
+import { apiClient, setAuthToken } from './config';
 
 const UserContext = createContext();
 
@@ -51,6 +51,7 @@ export const UserProvider = ({ children }) => {
       } catch (err) {
         if (err.response?.status === 401 && !cancelled) {
           localStorage.removeItem('user');
+          setAuthToken(null);
           setUser(null);
         }
       }
@@ -87,6 +88,7 @@ export const UserProvider = ({ children }) => {
     } finally {
       // Clear local storage and state
       localStorage.removeItem('user');
+      setAuthToken(null);
       setUser(null);
       setIsAuthenticated(false);
       setError(null);

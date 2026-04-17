@@ -33,6 +33,20 @@ export const mlApiUrl = resolveMlApiUrl();
 /** Google OAuth 2.0 Web client ID (set `VITE_GOOGLE_CLIENT_ID` in `.env`; exposed in the client bundle). */
 export const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 
+/** JWT for cross-origin API calls (Vercel → Render). Browsers often block third-party cookies; backend also accepts `x-auth-token`. */
+const AUTH_TOKEN_KEY = 'sustainadish_auth_token';
+
+export function getAuthToken() {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function setAuthToken(token) {
+  if (typeof window === 'undefined') return;
+  if (token) localStorage.setItem(AUTH_TOKEN_KEY, token);
+  else localStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
 // Create axios instance with credentials support (for httpOnly cookies)
 export const apiClient = axios.create({
   baseURL: apiUrl,
@@ -40,6 +54,15 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+apiClient.interceptors.request.use((config) => {
+  const t = getAuthToken();
+  if (t) {
+    config.headers = config.headers ?? {};
+    config.headers['x-auth-token'] = t;
+  }
+  return config;
 });
 
 // Add request interceptor for debugging (development server only)

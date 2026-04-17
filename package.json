@@ -22,7 +22,6 @@
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "framer-motion": "^12.38.0",
-    "gapi-script": "^1.2.0",
     "gridfs-stream": "^1.1.1",
     "gsap": "^3.15.0",
     "jsonwebtoken": "^9.0.2",

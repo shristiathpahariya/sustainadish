@@ -210,6 +210,18 @@
   flex-shrink: 0;
 }
 
+/* Google Identity Services (official rendered button) */
+.google_gsi_wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.google_gsi_mount {
+  min-height: 44px;
+}
+
 .terms {
   font-size: 0.8rem;
   color: #888;
