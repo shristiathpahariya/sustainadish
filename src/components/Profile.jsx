@@ -7,6 +7,7 @@ import { useUser } from "../UserContext";
 import { useMessageDialog } from "../context/MessageDialogContext";
 import { apiClient, apiUrl } from "../config";
 import { splitIngredients, splitInstructions } from "../utils/recipeText";
+import { DONATION_IMAGE_FALLBACK } from "../utils/donationImageFallback";
 import "../.././src/post.css";
 
 const canDeletePost = (post, user) => {
@@ -408,7 +409,7 @@ const Profile = () => {
                   className="post-image"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = "https://via.placeholder.com/300x190?text=No+Image";
+                    e.target.src = DONATION_IMAGE_FALLBACK;
                   }}
                 />
                 <div className="post-card-footer">
@@ -504,7 +505,7 @@ const Profile = () => {
               className="popup-image"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = "https://via.placeholder.com/440x210?text=No+Image";
+                e.target.src = DONATION_IMAGE_FALLBACK;
               }}
             />
             <div className="popup-details">

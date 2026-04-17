@@ -16,7 +16,7 @@ const donationSchema = new mongoose.Schema({
     trim: true,
     lowercase: true,
     required: [true, 'Email is required'],
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']
+    match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please provide a valid email'],
   },
   item: {
     type: String,

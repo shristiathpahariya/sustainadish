@@ -7,17 +7,43 @@ class DonationController {
     try {
       const { donatedBy, contact, email, item, servings, expiryDate, additionalInfo } = req.body;
 
-      // Validate input
-      if (!donatedBy || !contact || !email || !item || !servings) {
-        return res.status(400).json({ 
-          error: 'Please provide all required fields: donatedBy, contact, email, item, servings' 
+      const missing = [];
+      if (!String(donatedBy || '').trim()) missing.push('donatedBy');
+      if (!String(contact || '').trim()) missing.push('contact');
+      if (!String(email || '').trim()) missing.push('email');
+      if (!String(item || '').trim()) missing.push('item');
+      if (servings === undefined || servings === null || String(servings).trim() === '') {
+        missing.push('servings');
+      }
+      if (!expiryDate || String(expiryDate).trim() === '') {
+        missing.push('expiryDate');
+      }
+      if (missing.length) {
+        return res.status(400).json({
+          message: `Please fill in: ${missing.join(', ')}`,
+          error: `Please fill in: ${missing.join(', ')}`,
         });
       }
 
-      // Validate expiry date format
-      if (new Date(expiryDate) <= new Date()) {
-        return res.status(400).json({ 
-          error: 'Expiry date must be in the future' 
+      const servingsNum = parseInt(String(servings), 10);
+      if (Number.isNaN(servingsNum) || servingsNum < 1) {
+        return res.status(400).json({
+          message: 'Servings must be a positive whole number.',
+          error: 'Servings must be a positive whole number.',
+        });
+      }
+
+      const expiry = new Date(expiryDate);
+      if (Number.isNaN(expiry.getTime())) {
+        return res.status(400).json({
+          message: 'Please choose a valid expiry date.',
+          error: 'Please choose a valid expiry date.',
+        });
+      }
+      if (expiry <= new Date()) {
+        return res.status(400).json({
+          message: 'Expiry date must be in the future.',
+          error: 'Expiry date must be in the future.',
         });
       }
 
@@ -29,8 +55,8 @@ class DonationController {
         contact: contact.trim(),
         email: email.trim().toLowerCase(),
         item: item.trim(),
-        servings: parseInt(servings),
-        expiryDate: new Date(expiryDate),
+        servings: servingsNum,
+        expiryDate: expiry,
         pictures: req.file ? {
           data: req.file.buffer,
           contentType: req.file.mimetype
@@ -41,7 +67,7 @@ class DonationController {
 
       await newDonation.save();
 
-      res.status(200).json({
+      res.status(201).json({
         message: 'Thank you for submitting the donation!',
         data: newDonation.toJSON(),
       });
@@ -49,12 +75,17 @@ class DonationController {
       console.error('Error submitting donation:', error);
       
       if (error.name === 'ValidationError') {
-        return res.status(400).json({ 
-          error: Object.values(error.errors).map(e => e.message).join(', ') 
+        const msg = Object.values(error.errors).map((e) => e.message).join(', ');
+        return res.status(400).json({
+          message: msg,
+          error: msg,
         });
       }
       
-      res.status(500).json({ error: 'An error occurred while submitting the donation.' });
+      res.status(500).json({
+        message: 'An error occurred while submitting the donation.',
+        error: 'An error occurred while submitting the donation.',
+      });
     }
   }
 
@@ -182,8 +213,16 @@ class DonationController {
         return res.status(404).json({ error: 'Image not found' });
       }
 
-      res.contentType(donation.pictures.contentType || 'image/jpeg');
-      res.send(donation.pictures.data);
+      const raw = donation.pictures.data;
+      if (raw == null || (Buffer.isBuffer(raw) && raw.length === 0)) {
+        return res.status(404).json({ error: 'Image not found' });
+      }
+
+      const buf = Buffer.isBuffer(raw) ? raw : Buffer.from(raw);
+      const ct = donation.pictures.contentType || 'image/jpeg';
+      res.set('Cache-Control', 'private, max-age=300');
+      res.type(ct);
+      res.send(buf);
     } catch (error) {
       console.error('Error retrieving image:', error);
       res.status(500).json({ error: 'Error retrieving image' });

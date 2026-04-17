@@ -3,12 +3,10 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Calendar, Mail, Package, Phone, Search, User } from "lucide-react";
 import { apiClient, apiUrl } from "../config";
+import { DONATION_IMAGE_FALLBACK } from "../utils/donationImageFallback";
 import "../feed.css";
 
 const PAGE_SIZE = 9;
-
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80";
 
 const getDisplayText = (value, fallback = "N/A") => {
   if (typeof value !== "string") {
@@ -234,7 +232,7 @@ const Feed = () => {
                           loading="lazy"
                           onError={(event) => {
                             event.currentTarget.onerror = null;
-                            event.currentTarget.src = FALLBACK_IMAGE;
+                            event.currentTarget.src = DONATION_IMAGE_FALLBACK;
                           }}
                         />
                       </div>

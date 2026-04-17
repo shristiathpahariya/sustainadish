@@ -73,7 +73,10 @@ app.use((err, req, res, next) => {
   
   // Handle multer errors
   if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({ error: 'File size exceeds 5MB limit' });
+    return res.status(400).json({
+      error: 'File too large for this upload.',
+      message: 'File too large for this upload.',
+    });
   }
   
   if (err.code === 'LIMIT_UNEXPECTED_FILE') {

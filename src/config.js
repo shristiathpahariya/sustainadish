@@ -57,6 +57,19 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    const h = config.headers;
+    if (h) {
+      if (typeof h.delete === 'function') {
+        h.delete('Content-Type');
+      } else {
+        delete h['Content-Type'];
+      }
+      if (h.common && typeof h.common === 'object') {
+        delete h.common['Content-Type'];
+      }
+    }
+  }
   const t = getAuthToken();
   if (t) {
     config.headers = config.headers ?? {};
