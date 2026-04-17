@@ -1,97 +1,123 @@
-import React, { useState } from 'react';
-import { apiUrl } from '../config';
-import '../../src/feedback.css';
-import { useNavigate } from 'react-router-dom';
-import { useMessageDialog } from '../context/MessageDialogContext';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { apiClient } from "../config";
+import "../feedback.css";
+import { useMessageDialog } from "../context/MessageDialogContext";
+
+const MIN_CHARS = 10;
 
 const Feedback = () => {
   const { notifySuccess, notifyError, notifyInfo } = useMessageDialog();
-  const [rating, setRating] = useState(null); 
-  const [feedback, setFeedback] = useState('');
-  const [isFormVisible, setIsFormVisible] = useState(true); // Track visibility of the form
-  const navigate = useNavigate()
+  const [rating, setRating] = useState(null);
+  const [feedback, setFeedback] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleRatingChange = (value) => {
-    setRating(value);
-  };
-
-  const handleFeedbackChange = (event) => {
-    setFeedback(event.target.value);
-  };
-
-  const handleSubmit = async () => {
-    // Validate form inputs
-    if (!rating) {
-      notifyInfo('Please select a star rating before submitting.', 'Rating required');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (rating == null) {
+      notifyInfo("Please select a star rating before submitting.", "Rating required");
       return;
     }
-
-    if (feedback.trim() === '') {
-      notifyInfo('Please write a short comment in the feedback box.', 'Feedback required');
-      return;
-    }
-
-    // Prepare data to be sent to the backend
-    const feedbackData = { rating, feedback };
-
-    try {
-      // Send feedback data to the backend
-      const response = await fetch(`${apiUrl}/feedback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(feedbackData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      await response.json();
-
-      setRating(null);
-      setFeedback('');
-      notifySuccess('Your feedback helps us improve SustainaDish.', 'Thank you');
-    } catch (error) {
-      console.error('Network error:', error);
-      notifyError(
-        error?.message
-          ? `We couldn't submit your feedback: ${error.message}`
-          : "We couldn't reach the server. Please try again shortly."
+    const text = feedback.trim();
+    if (text.length < MIN_CHARS) {
+      notifyInfo(
+        `Please write at least ${MIN_CHARS} characters of feedback.`,
+        "Feedback required"
       );
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await apiClient.post("/feedback", { rating, feedback: text });
+      setRating(null);
+      setFeedback("");
+      notifySuccess("Your feedback helps us improve SustainaDish.", "Thank you");
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Could not submit feedback. Please try again.";
+      notifyError(typeof msg === "string" ? msg : "Could not submit feedback.");
+    } finally {
+      setLoading(false);
     }
   };
-
-  const handleCloseForm=()=>{
-    navigate('/')
-  }
 
   return (
-    <div className={`feedback-form ${isFormVisible ? '' : 'hidden'}`}>
-      <button className="close-form-button" onClick={handleCloseForm}>×</button>
-      <h2>Rate your experience</h2>
-      <div className="stars">
-        {[5, 4, 3, 2, 1].map((star) => (
-          <React.Fragment key={star}>
-            <input
-              type="radio"
-              id={`star${star}`}
-              name="rating"
-              value={star}
-              checked={rating === star}
-              onChange={() => handleRatingChange(star)}
-            />
-            <label htmlFor={`star${star}`}>&#9733;</label>
-          </React.Fragment>
-        ))}
+    <main className="feedback-page" aria-label="Feedback">
+      <div className="feedback-page__inner">
+        <header className="feedback-page__header">
+          <p className="feedback-page__eyebrow">We&apos;d love to hear from you</p>
+          <h1 className="feedback-page__title">Feedback</h1>
+          <p className="feedback-page__lede">
+            Rate your experience and tell us what we can do better.
+          </p>
+        </header>
+
+        <form className="feedback-page__card" onSubmit={handleSubmit} noValidate>
+          <button
+            type="button"
+            className="feedback-page__close"
+            onClick={() => navigate("/")}
+            aria-label="Close and go home"
+          >
+            ×
+          </button>
+
+          <label className="feedback-page__label" htmlFor="feedback-rating">
+            Overall rating
+          </label>
+          <div id="feedback-rating" className="feedback-page__stars" role="group" aria-label="Star rating">
+            <span className="feedback-page__sr-only" aria-live="polite">
+              {rating != null ? `${rating} out of 5 stars selected` : "No rating selected"}
+            </span>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                className={`feedback-page__star${rating != null && star <= rating ? " is-on" : ""}`}
+                onClick={() => setRating(star)}
+                aria-label={`Rate ${star} out of 5`}
+              >
+                &#9733;
+              </button>
+            ))}
+          </div>
+
+          <label className="feedback-page__label" htmlFor="feedback-text">
+            Your comments
+          </label>
+          <textarea
+            id="feedback-text"
+            className="feedback-page__textarea"
+            placeholder="What worked well? What could be improved?"
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            rows={6}
+            maxLength={2000}
+            autoComplete="off"
+          />
+          <p className="feedback-page__hint">
+            {feedback.trim().length < MIN_CHARS
+              ? `${MIN_CHARS - feedback.trim().length} more characters needed (minimum ${MIN_CHARS})`
+              : `${feedback.trim().length} characters`}
+          </p>
+
+          <div className="feedback-page__actions">
+            <button type="submit" className="feedback-page__submit" disabled={loading}>
+              {loading ? "Sending…" : "Submit feedback"}
+            </button>
+          </div>
+        </form>
+
+        <Link to="/" className="feedback-page__home">
+          Back to home
+        </Link>
       </div>
-      <p>Please share your review</p>
-      <textarea placeholder="Enter your feedback here...." value={feedback} onChange={handleFeedbackChange} />
-      <div className="button-wrapper">
-        <button type="button" onClick={handleSubmit} className='submit'>Submit</button>
-      </div>
-    </div>
+    </main>
   );
 };
 

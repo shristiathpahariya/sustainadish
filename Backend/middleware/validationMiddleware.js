@@ -137,32 +137,34 @@ const sanitizeDonationInput = (req, res, next) => {
 const sanitizeFeedbackInput = (req, res, next) => {
   try {
     const { rating, feedback } = req.body;
-    
+
     if (rating === undefined || rating === null) {
-      return res.status(400).json({ error: 'Rating is required' });
+      return res.status(400).json({ message: 'Rating is required' });
     }
-    
-    if (isNaN(rating) || rating < 1 || rating > 5) {
-      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+
+    const ratingNum = Number(rating);
+    if (Number.isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      return res.status(400).json({ message: 'Rating must be between 1 and 5' });
     }
-    
+
     if (!feedback || typeof feedback !== 'string') {
-      return res.status(400).json({ error: 'Feedback is required' });
+      return res.status(400).json({ message: 'Feedback text is required' });
     }
-    
-    if (feedback.trim().length < 10) {
-      return res.status(400).json({ 
-        error: 'Feedback must be at least 10 characters long' 
+
+    const trimmed = feedback.trim();
+    if (trimmed.length < 10) {
+      return res.status(400).json({
+        message: 'Feedback must be at least 10 characters long',
       });
     }
-    
-    req.body.rating = parseInt(rating);
-    req.body.feedback = feedback.trim();
-    
+
+    req.body.rating = Math.round(ratingNum);
+    req.body.feedback = trimmed;
+
     next();
   } catch (error) {
     console.error('Feedback validation error:', error);
-    res.status(400).json({ error: 'Invalid feedback data' });
+    res.status(400).json({ message: 'Invalid feedback data' });
   }
 };
 

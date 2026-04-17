@@ -1,166 +1,252 @@
-.feedback-form {
-  background: linear-gradient(
-    to bottom,
-    #afffe7 0%,
-    #e7faf0 20%,
-    #e4faed 16%,
-    #e1f9ea 24%,
-    #ddf9e5 34%,
-    #dbf9e2 40%,
-    #d6f8dd 50%,
-    #d3f8d9 59%,
-    #cff8d5 68%,
-    #ccf8d1 75%,
-    #c7f7ca 89%,
-    #c2f7c5 100%
-  );
-  padding: 60px;
-  border-radius: 50px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-  width: 1200px;
-  height: 95%;
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:wght@400;700&display=swap");
+
+/* Feedback — aligned with recommend / profile editorial system */
+
+.feedback-page {
+  --fb-green: #059669;
+  --fb-green-deep: #047857;
+  --fb-cream: #faf8f3;
+  min-height: calc(100vh - 80px);
+  padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem) clamp(3rem, 6vw, 4rem);
+  background-color: var(--fb-cream);
+  background-image:
+    radial-gradient(ellipse 85% 65% at 90% 10%, rgba(5, 150, 105, 0.1) 0%, transparent 52%),
+    radial-gradient(ellipse 70% 55% at 8% 85%, rgba(52, 211, 153, 0.08) 0%, transparent 50%);
+}
+
+.feedback-page__inner {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.feedback-page__header {
   text-align: center;
-  position: relative; /* Ensure the form container is positioned */
+  margin-bottom: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+.feedback-page__eyebrow {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fb-green-deep);
+  margin: 0 0 0.5rem;
+}
+
+.feedback-page__title {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.65rem, 4vw, 2rem);
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+  line-height: 1.15;
+}
+
+.feedback-page__lede {
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  font-size: 0.98rem;
+  color: #5f5e5a;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.feedback-page__card {
+  border: 2px solid #1a1a1a;
+  background: #fff;
+  padding: clamp(1.35rem, 3vw, 1.75rem);
+  box-shadow: 8px 8px 0 rgba(26, 26, 26, 0.06);
   position: relative;
-  z-index: 1;
-  margin-top: 58px;
-  margin-left: 10%;
-  background-size: cover; /* Ensure it scales properly */
-}
-.feedback-form h2 {
-  font-size: 15px;
-  font-weight: bold;
 }
 
-/* Close button for the feedback form */
-.close-form-button {
+.feedback-page__card::before {
+  content: "";
   position: absolute;
-  top: 40px;
-  right: 40px;
-  font-size: 24px;
-  cursor: pointer;
-  background: none;
-  border: none;
-  color: #333;
-  transition: color 0.3s;
-  outline: none;
-  padding: 0;
-  z-index: 2; /* Ensure it’s above other content */
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #047857 0%, var(--fb-green) 40%, #34d399 85%, #a7f3d0 100%);
 }
 
-.close-form-button:hover {
-  color: #3c9e67; /* Optional: Change color on hover */
-}
-
-.close-button {
-  background: none;
-  border: none;
-  cursor: pointer;
+.feedback-page__close {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 30px;
-}
-
-/* Hide the feedback form */
-.hidden {
-  display: none;
-}
-
-/* Stars styling */
-.stars {
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 2.25rem;
+  height: 2.25rem;
   display: flex;
+  align-items: center;
   justify-content: center;
-  margin-bottom: 15px;
-  position: relative;
-}
-
-.stars input[type="radio"] {
-  display: none;
-}
-
-.stars label {
-  font-size: 50px;
-  color: #d0d4c4e1;
-  padding: 0 5px;
+  padding: 0;
+  border: 2px solid #1a1a1a;
+  background: var(--fb-cream);
+  font-family: "Space Mono", monospace;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #1a1a1a;
   cursor: pointer;
-  transition: color 0.2s, transform 0.2s;
-  text-shadow: 1px 0px 0 #0000000c, 1px 1px 0 #0000006a, 1px 1px 0 #0000003b,
-    1px 1px 0 #0000004d;
-}
-
-.stars input[type="radio"]:checked ~ label,
-.stars label:hover,
-.stars label:hover ~ label {
-  color: #f5a623;
-}
-
-.stars label:hover {
-  transform: scale(1.2);
-}
-
-/* Textarea styling */
-textarea {
-  width: 90%;
-  height: 150px;
-  padding: 20px;
-  resize: none;
-  margin-bottom: 20px;
-  margin-top: 30px;
-  color: black;
-  background-color: #f1f9e2;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08),
-    inset 0 4px 6px rgba(0, 0, 0, 0.1); /* Added inner shadow */
-  z-index: 1; /* Ensure the textarea is below the button */
-  position: relative; /* Ensure it respects z-index */
-  transition: background-color 0.3s ease; /* Smooth transition */
-  border: 0px solid #ac9f9f; /* Add a border */
-}
-
-textarea:focus {
-  background-color: #f1f9e2; /* Black background */
-  color: black; /* White text */
-  outline: none; /* Remove default outline */
-  border-color: grey;
-}
-
-/* Submit button styling */
-.button-wrapper {
-  display: flex;
-  justify-content: center; /* Centers the button horizontally */
-  margin-top: 20px; /* Adjust if necessary */
-}
-
-.submit {
-  background-color: #3baea0;
-  color: rgb(255, 255, 255);
-  padding: 12px 25px; /* Increase the padding for a larger button */
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  margin: 20px 0; /* Add some margin for spacing */
-  display: block; /* Ensure the button behaves as a block element */
-  width: 200px; /* Set a fixed width for the button */
-  text-align: center; /* Center text inside the button */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-  position: relative; /* Ensure the button is positioned properly */
+  transition: background 0.15s ease, color 0.15s ease;
   z-index: 2;
 }
-.submit:hover {
-  background-color: rgb(109, 183, 175);
-}
-.feedback-close-button {
-  position: absolute;
-  top: 40px;
-  right: 40px;
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: #333;
-  cursor: pointer;
-  transition: color 0.3s;
+
+.feedback-page__close:hover {
+  background: #1a1a1a;
+  color: #faf8f3;
 }
 
-.feedback-close-button:hover {
-  color: #50c78b; /* Change color on hover */
+.feedback-page__close:focus-visible {
+  outline: 2px solid var(--fb-green);
+  outline-offset: 2px;
+}
+
+.feedback-page__label {
+  display: block;
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  margin-bottom: 0.65rem;
+  text-align: left;
+}
+
+.feedback-page__stars {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.feedback-page__star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 2rem;
+  line-height: 1;
+  padding: 4px 6px;
+  color: #d6d3cd;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.feedback-page__star:hover {
+  transform: scale(1.08);
+}
+
+/* Stars 1..n filled via .is-on on each button */
+.feedback-page__star.is-on {
+  color: #f59e0b;
+  text-shadow: 0 1px 0 rgba(26, 26, 26, 0.12);
+}
+
+.feedback-page__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 140px;
+  padding: 12px 14px;
+  margin-bottom: 0.35rem;
+  border: 2px solid #1a1a1a;
+  border-radius: 0;
+  background: var(--fb-cream);
+  font-family: "Playfair Display", serif;
+  font-size: 1rem;
+  color: #1a1a1a;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.feedback-page__textarea:focus {
+  outline: none;
+  border-color: var(--fb-green);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+}
+
+.feedback-page__hint {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  color: #888780;
+  text-align: right;
+  margin: 0 0 1.25rem;
+}
+
+.feedback-page__actions {
+  display: flex;
+  justify-content: center;
+}
+
+.feedback-page__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 200px;
+  padding: 11px 24px;
+  border: 2px solid #047857;
+  background: linear-gradient(135deg, #047857 0%, var(--fb-green) 55%, #10b981 100%);
+  color: #faf8f3;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.2s ease, opacity 0.2s ease;
+  filter: drop-shadow(0 4px 12px rgba(5, 150, 105, 0.28));
+}
+
+.feedback-page__submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 6px 16px rgba(5, 150, 105, 0.38));
+}
+
+.feedback-page__submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.feedback-page__submit:focus-visible {
+  outline: 2px solid var(--fb-green-deep);
+  outline-offset: 3px;
+}
+
+.feedback-page__home {
+  display: block;
+  text-align: center;
+  margin-top: 1.5rem;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fb-green-deep);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.feedback-page__home:hover {
+  color: var(--fb-green);
+  border-bottom-color: rgba(5, 150, 105, 0.4);
+}
+
+.feedback-page__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 540px) {
+  .feedback-page__submit {
+    width: 100%;
+  }
 }
