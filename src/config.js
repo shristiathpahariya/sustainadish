@@ -13,7 +13,9 @@ function resolveApiUrl() {
       return 'http://localhost:3000/api';
     }
   }
-  return 'https://sustainadish.vercel.app/api';
+  // Vercel hosts only the static SPA — there is no /api on *.vercel.app. Point at your Node API
+  // (e.g. Render). Override with VITE_API_URL in Vercel → Environment Variables (Production).
+  return 'https://sustainadish-backend.onrender.com/api';
 }
 
 function resolveMlApiUrl() {
