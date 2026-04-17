@@ -369,6 +369,13 @@
   letter-spacing: 0.03em;
 }
 
+.recipe-grid--text-only .recipe-card--text-only {
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
 .scroll-recipes__hint {
   font-family: 'Space Mono', monospace;
   font-size: 10px;
@@ -434,6 +441,193 @@
   100% {
     background-position: -100% 0;
   }
+}
+
+/* Landing recipe detail dialog */
+.landing-recipe-modal {
+  max-width: min(100vw - 2rem, 560px);
+  width: 100%;
+  max-height: min(90vh, 680px);
+  padding: 0;
+  border: 2px solid #111;
+  background: transparent;
+  box-shadow: none;
+}
+
+.landing-recipe-modal::backdrop {
+  background: rgba(26, 26, 26, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.landing-recipe-modal__panel {
+  position: relative;
+  max-height: min(90vh, 680px);
+  overflow-y: auto;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  padding-top: clamp(2.5rem, 5vw, 3rem);
+  background: #fff;
+  box-shadow: 8px 8px 0 rgba(26, 26, 26, 0.08);
+}
+
+.landing-recipe-modal__panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ef9f27, #d85a30, #3b6d11);
+}
+
+.landing-recipe-modal__close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 2px solid #111;
+  background: #faf8f3;
+  font-family: 'Space Mono', monospace;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.landing-recipe-modal__close:hover {
+  background: #111;
+  color: #faf8f3;
+}
+
+.landing-recipe-modal__close:focus-visible {
+  outline: 2px solid #0b7156;
+  outline-offset: 2px;
+}
+
+.landing-recipe-modal__eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #d85a30;
+  margin: 0 0 0.35rem;
+}
+
+.landing-recipe-modal__title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 1rem;
+  line-height: 1.25;
+  padding-right: 2.5rem;
+}
+
+.landing-recipe-modal__subtitle {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #0b7156;
+  margin: 0 0 0.5rem;
+}
+
+.landing-recipe-modal__list {
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: #3d3d38;
+}
+
+.landing-recipe-modal__list li {
+  margin-bottom: 0.35rem;
+}
+
+.landing-recipe-modal__steps {
+  margin: 0 0 1rem;
+  padding-left: 1.35rem;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: #3d3d38;
+}
+
+.landing-recipe-modal__steps li {
+  margin-bottom: 0.5rem;
+}
+
+.landing-recipe-modal__empty {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.95rem;
+  font-style: italic;
+  color: #888780;
+  margin: 0 0 1.25rem;
+}
+
+.landing-recipe-modal__fallback-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: #3d3d38;
+  margin: 0 0 1rem;
+}
+
+.landing-recipe-modal__fallback-hint {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: #5f5e5a;
+  line-height: 1.6;
+  margin: 0 0 1.25rem;
+}
+
+.landing-recipe-modal__link {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: #0b7156;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.landing-recipe-modal__link:hover {
+  color: #059669;
+}
+
+.landing-recipe-modal__cta {
+  margin-top: 0.5rem;
+  padding: 10px 20px;
+  border: 2px solid #111;
+  background: #faf8f3;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.landing-recipe-modal__cta:hover {
+  background: #111;
+  color: #faf8f3;
+}
+
+.landing-recipe-modal__cta:focus-visible {
+  outline: 2px solid #0b7156;
+  outline-offset: 3px;
 }
 
 /* ────────────────────────────────────────
