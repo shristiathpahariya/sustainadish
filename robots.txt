@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /login
+Disallow: /signup
+Disallow: /profile
+Disallow: /editprofile
+
+Sitemap: https://shristiathpahariya.github.io/sustainadish/sitemap.xml

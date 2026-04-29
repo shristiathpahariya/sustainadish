@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import os
 import pickle
+import re
 from sklearn.metrics.pairwise import cosine_similarity
 import gensim.models.keyedvectors as word2vec
 import string
@@ -58,43 +59,30 @@ def extract_ingredient_name(ingredient_str):
     if not isinstance(ingredient_str, str):
         return ""
 
-    # Remove leading/trailing whitespace, quotes
     name = ingredient_str.strip().strip("'\"")
 
-    # Common measurements to remove (at the start)
-    measurements_to_remove = [
-        r'\d+\s*(?:1/2|1/4|1/3|2/3|3/4)?\s*',  # numbers with optional fractions
-        r'\d+\s*(?:dash|pinch|drop|sprinkle|teaspoon|tablespoon|cup|oz|ounce|pound|lb|g|kg|ml|liter|can|jar|bottle|package',
-        r'\d+\s*-?\s*(?:ounce|oz|pound|lb|cup|can|jar)',
-        r'\d+\s*/?\d*\s*-?\s*(?=[a-z])',  # matches patterns like "15-", "1/2-", "14-"
-        r'\(\d+[^)]*\)',  # Remove parenthetical quantities at start: "(15-Ounce)", "(10-Ounce)"
-    ]
+    # Remove parenthetical quantities: "(15-Ounce)", "(10-Ounce)" etc
+    name = re.sub(r'\([^)]*\)', ' ', name)
 
-    import re
-    for pattern in measurements_to_remove:
-        name = re.sub(pattern, '', name, flags=re.IGNORECASE).strip()
+    # Remove leading numbers and measurements: "1 ", "15-", "1/2 ", "14 1/2-"
+    name = re.sub(r'^[\d\s\-/]+', '', name)
 
-    # Remove common words that appear at the start
-    start_words_to_remove = [
-        'can', 'cup', 'cups', 'tablespoon', 'teaspoon', 'tbsp', 'tsp',
-        'ounce', 'ounces', 'gram', 'grams', 'pound', 'pounds',
-        'with', 'of', 'and', 'or', 'a', 'an', 'the', 'for', 'from'
-    ]
-    words = name.split()
-    while words and words[0].lower() in start_words_to_remove:
-        words.pop(0)
+    # Remove leading measurement words
+    name = re.sub(
+        r'^(can\s+of\s+|cup\s+|cups\s+|tablespoon[s]?\s+|teaspoon[s]?\s+|tbsp\s+|tsp\s+|'
+        r'ounce[s]?\s+|gram[s]?\s+|pound[s]?\s+|package[s]?\s+|jar[s]?\s+|bottle[s]?\s+'
+        r'|dash\s+|pinch\s+|drop[s]?\s+|sprinkle\s+|and\s+|or\s+|a\s+|an\s+|the\s+|for\s+|from\s+|of\s+|with\s+)',
+        '', name, flags=re.IGNORECASE
+    )
 
-    # Join remaining words and clean up
-    name = ' '.join(words)
+    # Strip quotes, punctuation at ends
+    name = name.strip(" '\",.;:-")
 
-    # Remove trailing content like "(See Chef's Tip"
-    if '(' in name:
-        name = name.split('(')[0].strip()
+    # If nothing meaningful left, return empty
+    if len(name) < 3:
+        return ""
 
-    # Remove trailing quotes, periods, commas
-    name = name.rstrip('.,;:"\'').strip()
-
-    return name if name else ""
+    return name
 
 def load_ml_models():
     """Load all ML models and data at startup"""
