@@ -160,7 +160,6 @@
 }
 
 .recommend-form__input {
-  width: 100%;
   box-sizing: border-box;
   padding: 11px 14px;
   margin-bottom: 1.25rem;
@@ -171,6 +170,50 @@
   font-size: 16px;
   color: #1a1a1a;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.recommend-form__input-wrap {
+  position: relative;
+}
+
+.recommend-form__input-wrap input {
+  width: 100%;
+}
+
+.recommend-form__autocomplete {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1.5px solid #1a1a1a;
+  z-index: 10;
+  max-height: 240px;
+  overflow-y: auto;
+  box-shadow: 0 8px 16px rgba(26, 26, 26, 0.12);
+}
+
+.recommend-form__autocomplete-item {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(26, 26, 26, 0.06);
+  font-family: "Playfair Display", serif;
+  font-size: 15px;
+  color: #3d3d38;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.recommend-form__autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.recommend-form__autocomplete-item:hover {
+  background: rgba(5, 150, 105, 0.08);
 }
 
 .recommend-form__input:focus {
@@ -339,6 +382,16 @@
   background: rgba(139, 92, 246, 0.08);
   color: #8b5cf6;
   border: 1px solid rgba(139, 92, 246, 0.18);
+}
+
+.recipe-card__missing {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #d97706;
+  margin: 0 0 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .recipe-card__subtitle {
@@ -560,6 +613,16 @@
 .recipe-modal__login-hint a {
   color: var(--rp-green-deep);
   font-weight: 700;
+}
+
+.recipe-modal__missing-hint {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #d97706;
+  margin: 0 0 1.25rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .recipe-card__saved-badge {

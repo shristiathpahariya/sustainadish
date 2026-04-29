@@ -28,6 +28,9 @@ const RecipeRecommendation = () => {
   const [recipeHashes, setRecipeHashes] = useState([]);
   const [savingRecipe, setSavingRecipe] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState([]);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const ingredientsInputRef = useRef(null);
 
   const selectedRecipe =
     selectedIndex !== null && selectedIndex < recipes.length ? recipes[selectedIndex] : null;
@@ -58,6 +61,67 @@ const RecipeRecommendation = () => {
     setSelectedIndex(null);
     setSaveError("");
   };
+
+  const handleIngredientChange = async (e) => {
+    const value = e.target.value;
+    setIngredients(value);
+
+    // Get the last ingredient being typed (after the last comma)
+    const parts = value.split(',');
+    const lastPart = parts[parts.length - 1].trim();
+
+    if (lastPart.length >= 2) {
+      try {
+        const response = await fetch(`${mlApiUrl}/ingredients/suggest?q=${encodeURIComponent(lastPart)}&limit=8`);
+        if (response.ok) {
+          const data = await response.json();
+          const suggestions = data.suggestions || [];
+          setAutocompleteSuggestions(suggestions);
+          setShowAutocomplete(suggestions.length > 0);
+        }
+      } catch (err) {
+        // Silent fail for autocomplete
+        console.warn("Autocomplete suggestion failed:", err);
+      }
+    } else {
+      setShowAutocomplete(false);
+      setAutocompleteSuggestions([]);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    const parts = ingredients.split(',');
+    parts[parts.length - 1] = suggestion;
+    const newValue = parts.join(', ');
+    setIngredients(newValue);
+    setShowAutocomplete(false);
+    setAutocompleteSuggestions([]);
+    ingredientsInputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setShowAutocomplete(false);
+      setAutocompleteSuggestions([]);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (ingredientsInputRef.current && !ingredientsInputRef.current.contains(e.target)) {
+        setShowAutocomplete(false);
+        setAutocompleteSuggestions([]);
+      }
+    };
+
+    if (showAutocomplete) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAutocomplete, ingredientsInputRef]);
 
   useEffect(() => {
     if (!user) {
@@ -209,21 +273,39 @@ const RecipeRecommendation = () => {
           <div className="recommend-page__sep-line" />
         </div>
 
-        <form className="recommend-form" onSubmit={handleSubmit}>
+        <form className="recommend-form" onSubmit={handleSubmit} noValidate>
           <label htmlFor="ingredients" className="recommend-form__label">
             Ingredients <span className="recommend-form__hint">(comma separated)</span>
           </label>
-          <input
-            type="text"
-            id="ingredients"
-            name="ingredients"
-            className="recommend-form__input"
-            placeholder="e.g. tomato, cheese, basil, rice"
-            value={ingredients}
-            onChange={(e) => setIngredients(e.target.value)}
-            required
-            autoComplete="off"
-          />
+          <div className="recommend-form__input-wrap">
+            <input
+              ref={ingredientsInputRef}
+              type="text"
+              id="ingredients"
+              name="ingredients"
+              className="recommend-form__input"
+              placeholder="e.g. tomato, cheese, basil, rice"
+              value={ingredients}
+              onChange={handleIngredientChange}
+              onKeyDown={handleKeyDown}
+              required
+              autoComplete="off"
+            />
+            {showAutocomplete && autocompleteSuggestions.length > 0 && (
+              <div className="recommend-form__autocomplete">
+                {autocompleteSuggestions.map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className="recommend-form__autocomplete-item"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button type="submit" className="recommend-form__submit" disabled={loading}>
             {loading ? "Finding recipes…" : "Get recommendations"}
           </button>
@@ -285,6 +367,11 @@ const RecipeRecommendation = () => {
                     {coverageLabel}
                   </p>
                 ) : null}
+                {recipe.missing_ingredients && recipe.missing_ingredients.length > 0 ? (
+                  <p className="recipe-card__missing">
+                    Missing: {recipe.missing_ingredients.join(", ")}
+                  </p>
+                ) : null}
                 {ingredientList.length > 0 ? (
                   <p className="recipe-card__preview-line">
                     {previewItems.join(" · ")}
@@ -339,6 +426,11 @@ const RecipeRecommendation = () => {
                 {modalTitle}
               </h2>
               <h3 className="recipe-card__subtitle">Ingredients</h3>
+              {selectedRecipe.missing_ingredients && selectedRecipe.missing_ingredients.length > 0 ? (
+                <p className="recipe-modal__missing-hint">
+                  ℹ️ Your ingredients not used: {selectedRecipe.missing_ingredients.join(", ")}
+                </p>
+              ) : null}
               {modalIngredientList.length > 0 ? (
                 <ul className="recipe-card__list">
                   {modalIngredientList.map((item, i) => (

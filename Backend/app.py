@@ -32,6 +32,7 @@ spell = SpellChecker()
 combined_embeddings = None
 vectorizer = None
 sampled_data = None
+all_ingredients_set = set()  # Cache for ingredient suggestions
 
 # Must be defined before load_ml_models(): pickled TfidfVectorizer references __main__.recipe_tokenizer
 def recipe_tokenizer(sentence):
@@ -54,7 +55,7 @@ def recipe_tokenizer(sentence):
 
 def load_ml_models():
     """Load all ML models and data at startup"""
-    global combined_embeddings, vectorizer, sampled_data
+    global combined_embeddings, vectorizer, sampled_data, all_ingredients_set
     try:
         print("Loading ML models...")
         with open('input/combined_embeddings.pkl', 'rb') as f:
@@ -63,6 +64,17 @@ def load_ml_models():
             vectorizer = pickle.load(f)
         with open('input/sampled_data.pkl', 'rb') as f:
             sampled_data = pickle.load(f)
+
+        # Extract all unique ingredients for autocomplete
+        print("Extracting ingredients for autocomplete...")
+        for ingredients_str in sampled_data['Ingredients']:
+            if isinstance(ingredients_str, str):
+                for ing in ingredients_str.split(','):
+                    ing_clean = ing.strip().lower()
+                    if ing_clean:
+                        all_ingredients_set.add(ing_clean)
+
+        print(f"Loaded {len(all_ingredients_set)} unique ingredients for autocomplete")
         print("ML models loaded successfully!")
         return True
     except FileNotFoundError as e:
@@ -165,6 +177,24 @@ def find_similar_recipes(user_input, num_similar=6):
             ascending=[False, True]
         )
 
+        # Compute smart suggestions: ingredients from user input that are NOT in each recipe
+        def compute_missing_ingredients(recipe_ingredients):
+            missing = []
+            for user_ing in user_ingredients:
+                user_ing_lower = user_ing.lower()
+                is_in_recipe = False
+                for recipe_ing in recipe_ingredients:
+                    if user_ing_lower in recipe_ing.lower() or recipe_ing.lower() in user_ing_lower:
+                        is_in_recipe = True
+                        break
+                if not is_in_recipe:
+                    missing.append(user_ing.strip().title())
+            return missing
+
+        similar_recipe_info['missing_ingredients'] = similar_recipe_info['Ingredients'].apply(
+            compute_missing_ingredients
+        )
+
         return similar_recipe_info, None, None
     except Exception as e:
         return None, f"Error finding recipes: {str(e)}", 500
@@ -195,6 +225,26 @@ def index():
 def health():
     """Health check endpoint for Render monitoring"""
     return jsonify({"status": "healthy"}), 200
+
+@app.route('/ingredients/suggest', methods=['GET'])
+def suggest_ingredients():
+    """Autocomplete endpoint for ingredient suggestions"""
+    query = request.args.get('q', '').strip().lower()
+    limit = int(request.args.get('limit', 10))
+
+    if not query or len(query) < 2:
+        return jsonify({"suggestions": []})
+
+    # Find ingredients that start with or contain the query
+    suggestions = sorted(
+        [ing for ing in all_ingredients_set if query in ing],
+        key=lambda x: (not x.startswith(query), x)  # Prioritize starts-with matches
+    )[:limit]
+
+    # Capitalize for display
+    suggestions_display = [s.title() for s in suggestions]
+
+    return jsonify({"suggestions": suggestions_display})
 
 @app.route('/recommend', methods=['POST'])
 def recommend():
