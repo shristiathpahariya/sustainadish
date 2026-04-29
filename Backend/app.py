@@ -53,6 +53,49 @@ def recipe_tokenizer(sentence):
 
     return listofstemmed_words
 
+def extract_ingredient_name(ingredient_str):
+    """Extract just the ingredient name, removing quantities, measurements, and extra info."""
+    if not isinstance(ingredient_str, str):
+        return ""
+
+    # Remove leading/trailing whitespace, quotes
+    name = ingredient_str.strip().strip("'\"")
+
+    # Common measurements to remove (at the start)
+    measurements_to_remove = [
+        r'\d+\s*(?:1/2|1/4|1/3|2/3|3/4)?\s*',  # numbers with optional fractions
+        r'\d+\s*(?:dash|pinch|drop|sprinkle|teaspoon|tablespoon|cup|oz|ounce|pound|lb|g|kg|ml|liter|can|jar|bottle|package',
+        r'\d+\s*-?\s*(?:ounce|oz|pound|lb|cup|can|jar)',
+        r'\d+\s*/?\d*\s*-?\s*(?=[a-z])',  # matches patterns like "15-", "1/2-", "14-"
+        r'\(\d+[^)]*\)',  # Remove parenthetical quantities at start: "(15-Ounce)", "(10-Ounce)"
+    ]
+
+    import re
+    for pattern in measurements_to_remove:
+        name = re.sub(pattern, '', name, flags=re.IGNORECASE).strip()
+
+    # Remove common words that appear at the start
+    start_words_to_remove = [
+        'can', 'cup', 'cups', 'tablespoon', 'teaspoon', 'tbsp', 'tsp',
+        'ounce', 'ounces', 'gram', 'grams', 'pound', 'pounds',
+        'with', 'of', 'and', 'or', 'a', 'an', 'the', 'for', 'from'
+    ]
+    words = name.split()
+    while words and words[0].lower() in start_words_to_remove:
+        words.pop(0)
+
+    # Join remaining words and clean up
+    name = ' '.join(words)
+
+    # Remove trailing content like "(See Chef's Tip"
+    if '(' in name:
+        name = name.split('(')[0].strip()
+
+    # Remove trailing quotes, periods, commas
+    name = name.rstrip('.,;:"\'').strip()
+
+    return name if name else ""
+
 def load_ml_models():
     """Load all ML models and data at startup"""
     global combined_embeddings, vectorizer, sampled_data, all_ingredients_set
@@ -65,14 +108,14 @@ def load_ml_models():
         with open('input/sampled_data.pkl', 'rb') as f:
             sampled_data = pickle.load(f)
 
-        # Extract all unique ingredients for autocomplete
+        # Extract all unique ingredients for autocomplete (clean names only)
         print("Extracting ingredients for autocomplete...")
         for ingredients_str in sampled_data['Ingredients']:
             if isinstance(ingredients_str, str):
                 for ing in ingredients_str.split(','):
-                    ing_clean = ing.strip().lower()
-                    if ing_clean:
-                        all_ingredients_set.add(ing_clean)
+                    clean_name = extract_ingredient_name(ing).lower()
+                    if clean_name and len(clean_name) >= 3:  # Only keep meaningful names
+                        all_ingredients_set.add(clean_name)
 
         print(f"Loaded {len(all_ingredients_set)} unique ingredients for autocomplete")
         print("ML models loaded successfully!")
