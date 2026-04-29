@@ -89,26 +89,30 @@ def find_similar_recipes(user_input, num_similar=6):
         # Vectorize the user input
         user_vectorized_data = vectorizer.transform(user_data['text_data'])
 
-        # Ensure dimensions match between user input and embeddings
-        user_features = user_vectorized_data.shape[1]
-        embedding_features = combined_embeddings.shape[1]
+        # combined_embeddings = [TF-IDF features + 100 word2vec]
+        # We need to match TF-IDF dimensions BEFORE adding the 100 word2vec dimensions
+        total_embedding_features = combined_embeddings.shape[1]
+        tfidf_features_in_embeddings = total_embedding_features - 100  # Remove the 100 word2vec dims
 
-        if user_features != embedding_features:
-            # Convert to array if needed
-            user_array = user_vectorized_data.toarray()
+        # Convert to array if needed for dimension manipulation
+        user_array = user_vectorized_data.toarray()
+        user_tfidf_features = user_array.shape[1]
 
-            if user_features > embedding_features:
-                # Truncate extra features (user has more than embeddings)
-                user_vectorized_data = user_array[:, :embedding_features]
+        if user_tfidf_features != tfidf_features_in_embeddings:
+            if user_tfidf_features > tfidf_features_in_embeddings:
+                # Truncate extra TF-IDF features to match what embeddings have
+                user_tfidf = user_array[:, :tfidf_features_in_embeddings]
             else:
-                # Pad with zeros (user has fewer features than embeddings)
-                num_missing = embedding_features - user_features
-                user_vectorized_data = np.pad(user_array, ((0, 0), (0, num_missing)))
+                # Pad with zeros for missing TF-IDF features
+                num_missing = tfidf_features_in_embeddings - user_tfidf_features
+                user_tfidf = np.pad(user_array, ((0, 0), (0, num_missing)))
+        else:
+            user_tfidf = user_array
 
-        # Apply ingredient weighting (FIX: use weighted embeddings in similarity calculation)
+        # Now apply weighting and add the 100 word2vec dimensions
         ingredient_weight = 0.8
         text_weight = 0.2
-        user_combined_embeddings = np.concatenate([user_vectorized_data * text_weight, np.zeros((1, 100))], axis=1)
+        user_combined_embeddings = np.concatenate([user_tfidf * text_weight, np.zeros((1, 100))], axis=1)
 
         # Compute cosine similarity between weighted user input and recipe embeddings
         cosine_sim_matrix = cosine_similarity(user_combined_embeddings, combined_embeddings)
