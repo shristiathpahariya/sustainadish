@@ -307,8 +307,38 @@
   font-size: clamp(1.25rem, 2.5vw, 1.5rem);
   font-weight: 700;
   color: #1a1a1a;
-  margin: 0 0 1rem;
+  margin: 0 0 0.6rem;
   line-height: 1.25;
+}
+
+.recipe-card__coverage {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 3px;
+  display: inline-block;
+  margin: 0 0 0.9rem;
+}
+
+.recipe-card__coverage--high {
+  background: rgba(4, 120, 87, 0.12);
+  color: #047857;
+  border: 1px solid rgba(4, 120, 87, 0.25);
+}
+
+.recipe-card__coverage--medium {
+  background: rgba(5, 150, 105, 0.09);
+  color: #065f46;
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.recipe-card__coverage--low {
+  background: rgba(139, 92, 246, 0.08);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.18);
 }
 
 .recipe-card__subtitle {

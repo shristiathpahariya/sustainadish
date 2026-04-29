@@ -75,16 +75,16 @@ def load_ml_models():
 # Load models at startup
 models_loaded = load_ml_models()
 
-# Function to find similar recipes and return Title, Ingredients (as a list), and Instructions
-def find_similar_recipes(user_input, num_similar=3):
-    """Find similar recipes using cached ML models"""
+# Function to find similar recipes and return Title, Ingredients (as a list), Instructions, and coverage score
+def find_similar_recipes(user_input, num_similar=6):
+    """Find similar recipes using cached ML models with ingredient coverage scoring."""
     if not models_loaded:
         return None, "ML models not loaded. Please restart the service.", 500
 
     try:
         # Process the user input (ingredient list)
-        user_input = user_input.lower()
-        user_data = pd.DataFrame({'text_data': [user_input]})
+        user_input_clean = user_input.lower().strip()
+        user_data = pd.DataFrame({'text_data': [user_input_clean]})
 
         # Vectorize the user input
         user_vectorized_data = vectorizer.transform(user_data['text_data'])
@@ -95,22 +95,61 @@ def find_similar_recipes(user_input, num_similar=3):
             # Add zero columns to match feature sizes
             user_vectorized_data = np.pad(user_vectorized_data.toarray(), ((0, 0), (0, num_missing_features)))
 
-        # Apply ingredient weighting
+        # Apply ingredient weighting (FIX: use weighted embeddings in similarity calculation)
         ingredient_weight = 0.8
         text_weight = 0.2
         user_combined_embeddings = np.concatenate([user_vectorized_data * text_weight, np.zeros((1, 100))], axis=1)
 
-        # Compute cosine similarity between the user input and combined embeddings
-        cosine_sim_matrix = cosine_similarity(user_vectorized_data, combined_embeddings)
+        # Compute cosine similarity between weighted user input and recipe embeddings
+        cosine_sim_matrix = cosine_similarity(user_combined_embeddings, combined_embeddings)
 
-        # Get indices of the top similar recipes
-        similar_recipes = cosine_sim_matrix[0].argsort()[::-1][:num_similar]
+        # Get similarity scores and indices of top recipes
+        sim_scores = cosine_sim_matrix[0]
+        top_indices = sim_scores.argsort()[::-1][:num_similar]
 
         # Fetch titles, ingredients, and instructions for the top similar recipes
-        similar_recipe_info = sampled_data.iloc[similar_recipes][['Title', 'Ingredients', 'Instructions']]
+        similar_recipe_info = sampled_data.iloc[top_indices][['Title', 'Ingredients', 'Instructions']].copy()
 
-        # Split ingredients into list if they are stored as a string (assuming comma-separated)
-        similar_recipe_info['Ingredients'] = similar_recipe_info['Ingredients'].apply(lambda x: x.split(','))
+        # Split ingredients into list and compute coverage score for each recipe
+        def compute_ingredients_and_coverage(recipe_ingredients_str, user_ingredients):
+            if not isinstance(recipe_ingredients_str, str):
+                return [], 0.0
+
+            # Parse recipe ingredients (assumes comma-separated, clean them up)
+            recipe_ingredients = [ing.strip().lower() for ing in recipe_ingredients_str.split(',') if ing.strip()]
+
+            if not user_ingredients or not recipe_ingredients:
+                return recipe_ingredients, 0.0
+
+            # Count how many user ingredients appear in recipe (partial match)
+            matched_count = 0
+            for user_ing in user_ingredients:
+                for recipe_ing in recipe_ingredients:
+                    # Check if user ingredient is contained in recipe ingredient or vice versa
+                    if user_ing in recipe_ing or recipe_ing in user_ing:
+                        matched_count += 1
+                        break  # Count each user ingredient only once
+
+            # Coverage score: percentage of user ingredients that are used in recipe
+            coverage_score = (matched_count / len(user_ingredients)) * 100 if user_ingredients else 0.0
+
+            return recipe_ingredients, round(coverage_score, 1)
+
+        # Parse user ingredients once before applying to all recipes
+        user_ingredients = [ing.strip().lower() for ing in user_input_clean.split(',') if ing.strip()]
+
+        # Apply to all recipes
+        ingredients_and_coverage = similar_recipe_info['Ingredients'].apply(
+            lambda x: compute_ingredients_and_coverage(x, user_ingredients)
+        )
+        similar_recipe_info['Ingredients'] = ingredients_and_coverage.apply(lambda x: x[0])
+        similar_recipe_info['coverage_score'] = ingredients_and_coverage.apply(lambda x: x[1])
+
+        # Sort by coverage score (higher coverage first), then by similarity
+        similar_recipe_info = similar_recipe_info.sort_values(
+            by=['coverage_score', 'Title'],
+            ascending=[False, True]
+        )
 
         return similar_recipe_info, None, None
     except Exception as e:

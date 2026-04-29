@@ -250,9 +250,24 @@ const RecipeRecommendation = () => {
           {recipes.map((recipe, index) => {
             const title = recipe.Title ?? recipe.title ?? "Recipe";
             const ing = recipe.Ingredients ?? recipe.ingredients ?? "";
-            const ingredientList = splitIngredients(ing);
+            const ingredientList = Array.isArray(ing) ? ing : splitIngredients(ing);
             const previewItems = ingredientList.slice(0, 2);
             const extraCount = Math.max(0, ingredientList.length - previewItems.length);
+
+            // Coverage score from backend (0-100)
+            const coverageScore = typeof recipe.coverage_score === "number"
+              ? recipe.coverage_score
+              : null;
+
+            // Visual label based on coverage
+            const coverageLabel = coverageScore !== null
+              ? `Uses ${Math.round(coverageScore)}% of your ingredients`
+              : "";
+
+            const coverageClass = coverageScore !== null
+              ? (coverageScore >= 80 ? "high" : coverageScore >= 50 ? "medium" : "low")
+              : null;
+
             return (
               <article key={`${title}-${index}`} className="recipe-card recipe-card--preview">
                 <p className="recipe-card__index">
@@ -265,6 +280,11 @@ const RecipeRecommendation = () => {
                     <span className="recipe-card__saved-badge">Saved</span>
                   ) : null}
                 </h2>
+                {coverageLabel && coverageClass ? (
+                  <p className={`recipe-card__coverage recipe-card__coverage--${coverageClass}`}>
+                    {coverageLabel}
+                  </p>
+                ) : null}
                 {ingredientList.length > 0 ? (
                   <p className="recipe-card__preview-line">
                     {previewItems.join(" · ")}
