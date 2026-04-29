@@ -31,6 +31,7 @@ const RecipeRecommendation = () => {
   const [autocompleteSuggestions, setAutocompleteSuggestions] = useState([]);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const ingredientsInputRef = useRef(null);
+  const ingredientsRef = useRef(""); // Mirror for closures
 
   const selectedRecipe =
     selectedIndex !== null && selectedIndex < recipes.length ? recipes[selectedIndex] : null;
@@ -65,6 +66,7 @@ const RecipeRecommendation = () => {
   const handleIngredientChange = async (e) => {
     const value = e.target.value;
     setIngredients(value);
+    ingredientsRef.current = value; // Keep ref in sync for click handler
 
     // Get the last ingredient being typed (after the last comma)
     const parts = value.split(',');
@@ -90,10 +92,13 @@ const RecipeRecommendation = () => {
   };
 
   const handleSuggestionClick = (suggestion) => {
-    const parts = ingredients.split(',');
+    // Use ref instead of state closure to avoid stale value
+    const currentVal = ingredientsRef.current;
+    const parts = currentVal.split(',');
     parts[parts.length - 1] = suggestion;
     const newValue = parts.join(', ');
     setIngredients(newValue);
+    ingredientsRef.current = newValue;
     setShowAutocomplete(false);
     setAutocompleteSuggestions([]);
     ingredientsInputRef.current?.focus();
@@ -298,7 +303,7 @@ const RecipeRecommendation = () => {
                     key={idx}
                     type="button"
                     className="recommend-form__autocomplete-item"
-                    onClick={() => handleSuggestionClick(suggestion)}
+                    onMouseDown={() => handleSuggestionClick(suggestion)}
                   >
                     {suggestion}
                   </button>
