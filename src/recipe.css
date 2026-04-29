@@ -8,7 +8,6 @@
   --rp-cream: #faf8f3;
   min-height: calc(100vh - 80px);
   position: relative;
-  overflow-x: hidden;
   background-color: var(--rp-cream);
   background-image:
     radial-gradient(ellipse 85% 65% at 90% 10%, rgba(5, 150, 105, 0.12) 0%, transparent 52%),

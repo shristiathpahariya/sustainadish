@@ -59,10 +59,14 @@ def extract_ingredient_name(ingredient_str):
     if not isinstance(ingredient_str, str):
         return ""
 
-    name = ingredient_str.strip().strip("'\"")
+    name = ingredient_str.strip()
 
     # Remove parenthetical quantities: "(15-Ounce)", "(10-Ounce)" etc
     name = re.sub(r'\([^)]*\)', ' ', name)
+
+    # Strip ALL punctuation and noise characters from start and end
+    # (data has trailing "']", "']\"", etc from list/array formatting)
+    name = name.strip(" '\",.;:-!?@#$%^&*[]{}()|/\\<>`~_+=»«")
 
     # Remove leading numbers and measurements: "1 ", "15-", "1/2 ", "14 1/2-"
     name = re.sub(r'^[\d\s\-/]+', '', name)
@@ -75,8 +79,8 @@ def extract_ingredient_name(ingredient_str):
         '', name, flags=re.IGNORECASE
     )
 
-    # Strip quotes, punctuation at ends
-    name = name.strip(" '\",.;:-")
+    # Strip again in case removal left trailing noise
+    name = name.strip(" '\",.;:-!?@#$%^&*[]{}()|/\\<>`~_+=»«")
 
     # If nothing meaningful left, return empty
     if len(name) < 3:
