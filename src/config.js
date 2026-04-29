@@ -6,27 +6,29 @@ import axios from 'axios';
  * VITE_API_URL overrides everything when set.
  */
 function resolveApiUrl() {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  const url = import.meta.env.VITE_API_URL;
+  if (url) return url.replace(/\/$/, ''); // Remove trailing slash
+
   if (typeof window !== 'undefined') {
     const h = window.location.hostname;
     if (h === 'localhost' || h === '127.0.0.1') {
       return 'http://localhost:3000/api';
     }
   }
-  // Vercel hosts only the static SPA — there is no /api on *.vercel.app. Point at your Node API
-  // (e.g. Render). Override with VITE_API_URL in Vercel → Environment Variables (Production).
-  return 'https://sustainadish-backend.onrender.com/api';
+  return 'https://sustainadish-backend.onrender.com/api'.replace(/\/$/, '');
 }
 
 function resolveMlApiUrl() {
-  if (import.meta.env.VITE_ML_API_URL) return import.meta.env.VITE_ML_API_URL;
+  const url = import.meta.env.VITE_ML_API_URL;
+  if (url) return url.replace(/\/$/, ''); // Remove trailing slash
+
   if (typeof window !== 'undefined') {
     const h = window.location.hostname;
     if (h === 'localhost' || h === '127.0.0.1') {
       return 'http://127.0.0.1:5000';
     }
   }
-  return 'https://your-ml-service.onrender.com';
+  return 'https://sustainadish-ml.onrender.com'.replace(/\/$/, '');
 }
 
 export const apiUrl = resolveApiUrl();
