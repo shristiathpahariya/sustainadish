@@ -89,11 +89,21 @@ def find_similar_recipes(user_input, num_similar=6):
         # Vectorize the user input
         user_vectorized_data = vectorizer.transform(user_data['text_data'])
 
-        # Ensure the number of features in user_vectorized_data matches combined_embeddings
-        num_missing_features = combined_embeddings.shape[1] - user_vectorized_data.shape[1]
-        if num_missing_features > 0:
-            # Add zero columns to match feature sizes
-            user_vectorized_data = np.pad(user_vectorized_data.toarray(), ((0, 0), (0, num_missing_features)))
+        # Ensure dimensions match between user input and embeddings
+        user_features = user_vectorized_data.shape[1]
+        embedding_features = combined_embeddings.shape[1]
+
+        if user_features != embedding_features:
+            # Convert to array if needed
+            user_array = user_vectorized_data.toarray()
+
+            if user_features > embedding_features:
+                # Truncate extra features (user has more than embeddings)
+                user_vectorized_data = user_array[:, :embedding_features]
+            else:
+                # Pad with zeros (user has fewer features than embeddings)
+                num_missing = embedding_features - user_features
+                user_vectorized_data = np.pad(user_array, ((0, 0), (0, num_missing)))
 
         # Apply ingredient weighting (FIX: use weighted embeddings in similarity calculation)
         ingredient_weight = 0.8
