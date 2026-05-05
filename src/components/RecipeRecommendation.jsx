@@ -33,6 +33,13 @@ const RecipeRecommendation = () => {
   const ingredientsInputRef = useRef(null);
   const ingredientsRef = useRef(""); // Mirror for closures
 
+  // Chat AI modification state
+  const [conversationHistory, setConversationHistory] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [modifiedRecipe, setModifiedRecipe] = useState(null);
+  const [chatError, setChatError] = useState("");
+
   const selectedRecipe =
     selectedIndex !== null && selectedIndex < recipes.length ? recipes[selectedIndex] : null;
 
@@ -255,6 +262,106 @@ const RecipeRecommendation = () => {
     }
   };
 
+  // Reset AI chat state when opening a new recipe
+  useEffect(() => {
+    if (selectedIndex !== null) {
+      setConversationHistory([]);
+      setChatInput("");
+      setChatLoading(false);
+      setModifiedRecipe(null);
+      setChatError("");
+    }
+  }, [selectedIndex]);
+
+  // Chat modification handlers
+  const handleChatSubmit = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || chatLoading) return;
+
+    const userMessage = chatInput.trim();
+
+    // Add user message to conversation
+    const newHistory = [
+      ...conversationHistory,
+      { role: "user", content: userMessage, timestamp: new Date().toISOString() }
+    ];
+    setConversationHistory(newHistory);
+    setChatInput("");
+    setChatLoading(true);
+    setChatError("");
+
+    try {
+      // Use modifiedRecipe if it exists, otherwise use original selectedRecipe
+      const recipeToModify = modifiedRecipe || {
+        title: modalTitle,
+        ingredients: modalIngredientList,
+        instructions: modalStepList
+      };
+
+      const response = await fetch(`${mlApiUrl}/ai-modify-recipe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          current_recipe: recipeToModify,
+          conversation_history: newHistory,
+          new_request: userMessage
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not modify recipe");
+      }
+
+      // Update state with AI response and modified recipe
+      setConversationHistory([
+        ...newHistory,
+        {
+          role: "assistant",
+          content: data.ai_response,
+          changes: data.changes_summary,
+          timestamp: new Date().toISOString()
+        }
+      ]);
+
+      setModifiedRecipe(data.updated_recipe);
+
+    } catch (err) {
+      const errorMsg = err.message || "Failed to modify recipe. Please try again.";
+      setChatError(errorMsg);
+      notifyError(errorMsg, "Recipe Modification");
+
+      setConversationHistory([
+        ...newHistory,
+        {
+          role: "assistant",
+          content: "Sorry, I couldn't modify the recipe as requested. " + errorMsg,
+          timestamp: new Date().toISOString()
+        }
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const handleQuickAction = (action) => {
+    setChatInput(action);
+  };
+
+  const handleResetRecipe = () => {
+    setModifiedRecipe(null);
+    setConversationHistory([]);
+    setChatInput("");
+    setChatError("");
+  };
+
+  // Helper to check if ingredient is new
+  const isNewIngredient = (ingredient, originalIngredients) => {
+    const ingLower = ingredient.toLowerCase();
+    return !originalIngredients.some(orig => orig.toLowerCase() === ingLower.substring(0, 20));
+  };
+
   return (
     <section className="recommend-page" aria-label="Recipe recommendations">
       <div className="recommend-page__inner">
@@ -428,35 +535,179 @@ const RecipeRecommendation = () => {
                   : "Recipe"}
               </p>
               <h2 id="recipe-modal-title" className="recipe-card__title recipe-modal__title">
-                {modalTitle}
+                {modifiedRecipe ? modifiedRecipe.title : modalTitle}
               </h2>
-              <h3 className="recipe-card__subtitle">Ingredients</h3>
+
+              {/* Display modified recipe badge */}
+              {modifiedRecipe && (
+                <span className="recipe-modal__modified-badge">Modified with AI</span>
+              )}
+
+              <h3 className="recipe-card__subtitle">
+                Ingredients {modifiedRecipe && <span className="recipe-modal__modified-tag">(Updated)</span>}
+              </h3>
               {selectedRecipe.missing_ingredients && selectedRecipe.missing_ingredients.length > 0 ? (
                 <p className="recipe-modal__missing-hint">
                   ℹ️ Your ingredients not used: {selectedRecipe.missing_ingredients.join(", ")}
                 </p>
               ) : null}
-              {modalIngredientList.length > 0 ? (
-                <ul className="recipe-card__list">
-                  {modalIngredientList.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="recipe-card__empty-part">
-                  No ingredient list included for this recipe.
-                </p>
-              )}
-              <h3 className="recipe-card__subtitle">Instructions</h3>
-              {modalStepList.length > 0 ? (
-                <ol className="recipe-card__steps">
-                  {modalStepList.map((step, i) => (
-                    <li key={i}>{step}</li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="recipe-card__empty-part">No instructions included.</p>
-              )}
+
+              {/* Display ingredients - modified or original */}
+              {(() => {
+                const ingredientList = modifiedRecipe
+                  ? modifiedRecipe.ingredients
+                  : modalIngredientList;
+                const originalIngredients = modalIngredientList;
+
+                return ingredientList.length > 0 ? (
+                  <ul className="recipe-card__list">
+                    {ingredientList.map((item, i) => {
+                      const isNew = modifiedRecipe && isNewIngredient(item, originalIngredients);
+                      return (
+                        <li key={i} className={isNew ? "recipe-card__item--new" : ""}>
+                          {item}
+                          {isNew && <span className="recipe-card__item-badge">NEW</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="recipe-card__empty-part">
+                    No ingredient list included for this recipe.
+                  </p>
+                );
+              })()}
+              <h3 className="recipe-card__subtitle">
+                Instructions {modifiedRecipe && <span className="recipe-modal__modified-tag">(Updated)</span>}
+              </h3>
+              {(() => {
+                const stepList = modifiedRecipe
+                  ? modifiedRecipe.instructions
+                  : modalStepList;
+
+                return stepList.length > 0 ? (
+                  <ol className="recipe-card__steps">
+                    {stepList.map((step, i) => (
+                      <li key={i}>{step}</li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="recipe-card__empty-part">No instructions included.</p>
+                );
+              })()}
+
+              {/* AI Chat Modification Section */}
+              <div className="recipe-modal__chat-section">
+                <div className="recipe-modal__chat-header">
+                  <h4 className="recipe-modal__chat-title">
+                    {modifiedRecipe ? "✨ Modified Recipe" : "🤖 Customize this recipe"}
+                  </h4>
+                  {modifiedRecipe && (
+                    <button
+                      type="button"
+                      className="recipe-modal__reset-btn"
+                      onClick={handleResetRecipe}
+                      title="Reset to original"
+                    >
+                      Reset to original
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick Action Buttons */}
+                {!modifiedRecipe && conversationHistory.length === 0 && (
+                  <div className="recipe-modal__quick-actions">
+                    <button
+                      type="button"
+                      className="recipe-modal__quick-btn"
+                      onClick={() => handleQuickAction("Make it vegetarian")}
+                    >
+                      🥬 Vegetarian
+                    </button>
+                    <button
+                      type="button"
+                      className="recipe-modal__quick-btn"
+                      onClick={() => handleQuickAction("Make it gluten-free")}
+                    >
+                      🌾 Gluten-free
+                    </button>
+                    <button
+                      type="button"
+                      className="recipe-modal__quick-btn"
+                      onClick={() => handleQuickAction("Make it spicier")}
+                    >
+                      🌶️ Spicier
+                    </button>
+                    <button
+                      type="button"
+                      className="recipe-modal__quick-btn"
+                      onClick={() => handleQuickAction("Reduce the fat")}
+                    >
+                      💪 Healthier
+                    </button>
+                  </div>
+                )}
+
+                {/* Conversation History */}
+                {conversationHistory.length > 0 && (
+                  <div className="recipe-modal__conversation">
+                    {conversationHistory.map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={`recipe-modal__message recipe-modal__message--${msg.role}`}
+                      >
+                        <span className="recipe-modal__message-content">{msg.content}</span>
+                        {msg.changes && (
+                          <span className="recipe-modal__message-changes">
+                            Changes: {msg.changes}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    {chatLoading && (
+                      <div className="recipe-modal__message recipe-modal__message--assistant recipe-modal__message--loading">
+                        <span className="typing-indicator">
+                          <span></span><span></span><span></span>
+                        </span>
+                        <span>Customizing your recipe...</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Chat Input */}
+                <form className="recipe-modal__chat-form" onSubmit={handleChatSubmit}>
+                  <input
+                    type="text"
+                    className="recipe-modal__chat-input"
+                    placeholder={modifiedRecipe ? "Continue customizing..." : "e.g., Make it spicier, swap butter for olive oil"}
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    disabled={chatLoading}
+                  />
+                  <button
+                    type="submit"
+                    className="recipe-modal__chat-submit"
+                    disabled={chatLoading || !chatInput.trim()}
+                  >
+                    {chatLoading ? "…" : "Send"}
+                  </button>
+                </form>
+
+                {chatError && (
+                  <p className="recipe-modal__chat-error" role="alert">
+                    {chatError}
+                  </p>
+                )}
+
+                {modifiedRecipe && (
+                  <div className="recipe-modal__modified-notice">
+                    <p className="recipe-modal__modified-summary">
+                      Latest change: {modifiedRecipe.modification_changes}
+                    </p>
+                  </div>
+                )}
+              </div>
               <div className="recipe-modal__footer">
                 {user ? (
                   <>

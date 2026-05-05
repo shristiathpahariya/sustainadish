@@ -12,6 +12,8 @@ import string
 import nltk
 from nltk.corpus import stopwords
 from spellchecker import SpellChecker
+import google.generativeai as genai
+from typing import Dict, List, Tuple
 
 # Download necessary NLTK data
 nltk.download('averaged_perceptron_tagger')
@@ -28,6 +30,16 @@ CORS(app)
 
 # Initialize spellchecker
 spell = SpellChecker()
+
+# Initialize Google Gemini API
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+genai_initialized = False
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    genai_initialized = True
+    print("Google Gemini API initialized successfully")
+else:
+    print("Warning: GEMINI_API_KEY not found. AI recipe modification will not be available.")
 
 # Global variables to cache ML models (load once at startup)
 combined_embeddings = None
@@ -302,6 +314,228 @@ def recommend():
         return jsonify(recommendations_list)
     else:
         return jsonify({"message": "No recommendations found. Try entering different ingredients."}), 404
+
+
+# AI Recipe Modification Functions
+def format_ingredients(ingredients) -> str:
+    """Format ingredients list for LLM prompt"""
+    if isinstance(ingredients, list):
+        return '\n'.join([f"- {ing}" for ing in ingredients])
+    elif isinstance(ingredients, str):
+        return ingredients
+    return ""
+
+def format_instructions(instructions) -> str:
+    """Format instructions list for LLM prompt"""
+    if isinstance(instructions, list):
+        return '\n'.join([f"{i+1}. {step}" for i, step in enumerate(instructions)])
+    elif isinstance(instructions, str):
+        return instructions
+    return ""
+
+def build_conversation_context(conversation_history: List[Dict], new_request: str) -> str:
+    """Build context string from conversation history"""
+    context_str = ""
+
+    if conversation_history:
+        context_str = "Previous conversation:\n"
+        for msg in conversation_history[-3:]:  # Only last 3 messages to manage context
+            if msg.get('role') == 'user':
+                context_str += f"User: {msg.get('content', '')}\n"
+            elif msg.get('role') == 'assistant':
+                if msg.get('changes'):
+                    context_str += f"Assistant (modified: {msg.get('changes')}): {msg.get('content', '')}\n"
+                else:
+                    context_str += f"Assistant: {msg.get('content', '')}\n"
+        context_str += "\n"
+
+    context_str += f"Current request: {new_request}"
+    return context_str
+
+def extract_ingredient_names(ingredients) -> List[str]:
+    """Extract ingredient names (remove quantities and measurements)"""
+    names = []
+    if isinstance(ingredients, list):
+        for ing in ingredients:
+            clean = extract_ingredient_name(ing)
+            if clean:
+                names.append(clean.lower())
+    return names
+
+def is_modification_too_drastic(original_recipe: Dict, updated_recipe: Dict) -> Tuple[bool, str]:
+    """
+    Check if changes are too extensive (>30% ingredients changed)
+    Returns: (is_too_drastic, reason)
+    """
+    original_ings = set(extract_ingredient_names(original_recipe.get('ingredients', [])))
+    updated_ings = set(extract_ingredient_names(updated_recipe.get('ingredients', [])))
+
+    if not original_ings or not updated_ings:
+        return False, ""
+
+    overlap = original_ings & updated_ings
+    overlap_ratio = len(overlap) / len(original_ings)
+
+    if overlap_ratio < 0.7:
+        removed = original_ings - updated_ings
+        added = updated_ings - original_ings
+        reason = f"This change would remove {len(removed)} ingredients and add {len(added)} new ones. " \
+                 f"Only {int(overlap_ratio * 100)}% of original ingredients would remain. " \
+                 f"Please make smaller changes or try a different recipe."
+        return True, reason
+
+    return False, ""
+
+def call_gemini_for_modification(current_recipe: Dict, conversation_context: str) -> Dict:
+    """Call Google Gemini API to modify the recipe"""
+    if not genai_initialized:
+        raise ValueError("Google Gemini API is not initialized. Please set GEMINI_API_KEY in environment.")
+
+    model = genai.GenerativeModel('gemini-pro')
+
+    prompt = f"""You are a recipe customization assistant. The user wants to modify an existing recipe.
+Your job is to make ONLY the changes requested, keeping everything else exactly the same.
+
+## Current Recipe
+Title: {current_recipe.get('title', 'Recipe')}
+Ingredients:
+{format_ingredients(current_recipe.get('ingredients', []))}
+
+Instructions:
+{format_instructions(current_recipe.get('instructions', []))}
+
+## Conversation Context
+{conversation_context}
+
+## Your Task
+Make ONLY the changes the user requested. Keep everything else exactly the same.
+- Add new ingredients if needed
+- Remove or replace ingredients if requested
+- Adjust cooking times or methods if needed
+- Update quantities if substitutions change proportions
+- Keep the core recipe structure intact
+
+IMPORTANT CONSTRAINTS:
+1. If the user's request would require changing MORE THAN 30% of ingredients, politely suggest they try a different recipe instead
+2. NEVER create an entirely new recipe - only modify the existing one
+3. Maintain the same cooking flow and style
+4. Update quantities proportionally when substituting ingredients
+5. If request is impossible (e.g., "make vegan" when recipe has no meat), explain why
+
+## Response Format
+Return ONLY valid JSON, no markdown, no code blocks:
+{{
+  "changes_summary": "Brief one-sentence description of what changed",
+  "updated_title": "Modified recipe title if changed (otherwise keep original)",
+  "updated_ingredients": ["Full updated ingredient list with quantities"],
+  "updated_instructions": ["Full updated step-by-step instructions"],
+  "ai_response": "Conversational response explaining what you changed and why"
+}}
+
+Examples of good changes_summary:
+- "Made it vegetarian by replacing chicken with chickpeas"
+- "Made it spicier by adding red pepper flakes and cayenne"
+- "Reduced cooking time by increasing heat"
+
+Examples of bad changes (reject with ai_response explaining why):
+- Changing 80% of ingredients - reject
+- Creating a completely different recipe - reject
+"""
+
+    # Call Gemini API
+    try:
+        response = model.generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0.3,  # Lower for more consistent modifications
+                "max_output_tokens": 1024,
+                "top_p": 0.8,
+            }
+        )
+
+        response_text = response.text.strip()
+
+        # Clean up the response (remove markdown code blocks if present)
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
+
+        # Parse JSON response
+        try:
+            result = eval(response_text)  # Safe here since we control the API output
+            return result
+        except:
+            # If JSON parsing fails, return error
+            return {
+                "error": "Failed to parse AI response",
+                "ai_response": "I had trouble generating the modified recipe. Please try rephrasing your request."
+            }
+
+    except Exception as e:
+        raise Exception(f"Gemini API error: {str(e)}")
+
+@app.route('/ai-modify-recipe', methods=['POST'])
+def modify_recipe():
+    """Modify an existing recipe based on user's conversational request"""
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        current_recipe = data.get('current_recipe')
+        conversation_history = data.get('conversation_history', [])
+        new_request = data.get('new_request')
+
+        if not current_recipe or not new_request:
+            return jsonify({"error": "Missing required fields: current_recipe and new_request are required"}), 400
+
+        if not genai_initialized:
+            return jsonify({"error": "AI service not available. Please contact administrator."}), 503
+
+        # Build conversation context
+        conversation_context = build_conversation_context(conversation_history, new_request)
+
+        # Call Gemini API
+        try:
+            ai_result = call_gemini_for_modification(current_recipe, conversation_context)
+        except Exception as e:
+            return jsonify({"error": f"AI service error: {str(e)}"}), 500
+
+        # Check for errors from AI
+        if ai_result.get('error'):
+            return jsonify({"error": ai_result['error'], "ai_response": ai_result.get('ai_response', '')}), 400
+
+        # Validate that modification isn't too drastic
+        is_too_drastic, reason = is_modification_too_drastic(current_recipe, ai_result)
+        if is_too_drastic:
+            return jsonify({
+                "error": "Modification too extensive",
+                "ai_response": reason,
+                "suggestion": "Try making smaller changes or look for a different recipe."
+            }), 400
+
+        # Build updated recipe object
+        updated_recipe = {
+            "title": ai_result.get('updated_title', current_recipe.get('title', 'Recipe')),
+            "ingredients": ai_result.get('updated_ingredients', current_recipe.get('ingredients', [])),
+            "instructions": ai_result.get('updated_instructions', current_recipe.get('instructions', [])),
+            "modified": True,
+            "modification_changes": ai_result.get('changes_summary', '')
+        }
+
+        return jsonify({
+            "updated_recipe": updated_recipe,
+            "changes_summary": ai_result.get('changes_summary', ''),
+            "ai_response": ai_result.get('ai_response', '')
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 
 
