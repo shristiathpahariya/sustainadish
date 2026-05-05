@@ -391,7 +391,8 @@ def call_gemini_for_modification(current_recipe: Dict, conversation_context: str
     if not genai_initialized:
         raise ValueError("Google Gemini API is not initialized. Please set GEMINI_API_KEY in environment.")
 
-    model = genai.GenerativeModel('gemini-pro')
+    # Use gemini-1.5-flash for faster free tier performance
+    model = genai.GenerativeModel('gemini-1.5-flash')
 
     prompt = f"""You are a recipe customization assistant. The user wants to modify an existing recipe.
 Your job is to make ONLY the changes requested, keeping everything else exactly the same.
