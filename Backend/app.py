@@ -499,8 +499,9 @@ IMPORTANT CONSTRAINTS:
 4. Update quantities proportionally when substituting ingredients
 5. If request is impossible (e.g., "make vegan" when recipe has no meat), explain why
 
-## Response Format
-Return ONLY valid JSON, no markdown, no code blocks:
+## CRITICAL RESPONSE REQUIREMENTS
+You MUST return responses in THIS EXACT JSON format. NO other text before or after:
+```json
 {{
   "changes_summary": "Brief one-sentence description of what changed",
   "updated_title": "Modified recipe title if changed (otherwise keep original)",
@@ -508,11 +509,20 @@ Return ONLY valid JSON, no markdown, no code blocks:
   "updated_instructions": ["Full updated step-by-step instructions"],
   "ai_response": "Conversational response explaining what you changed and why"
 }}
+```
+
+IMPORTANT:
+- Start your response with {{ and end with }}
+- NO introductory text
+- NO explanatory paragraphs before JSON
+- NO markdown formatting outside the JSON
+- Just the JSON object and nothing else
+- Ensure the JSON is valid syntax (all quotes, commas, brackets correct)
 
 Examples of good changes_summary:
 - "Made it vegetarian by replacing chicken with chickpeas"
 - "Made it spicier by adding red pepper flakes and cayenne"
-- "Reduced cooking time by increasing heat"
+- "Reduced fat by using low-fat cheese and less oil"
 
 Examples of bad changes (reject with ai_response explaining why):
 - Changing 80% of ingredients - reject
@@ -525,35 +535,96 @@ Examples of bad changes (reject with ai_response explaining why):
             prompt,
             generation_config={
                 "temperature": 0.3,  # Lower for more consistent modifications
-                "max_output_tokens": 1024,
+                "max_output_tokens": 2048,  # Increased for complex recipes
                 "top_p": 0.8,
             }
         )
 
-        response_text = response.text.strip()
+        raw_response = response.text.strip()
+        print(f"📥 Raw AI Response: {raw_response[:500]}...")  # Log first 500 chars for debugging
 
         # Clean up the response (remove markdown code blocks if present)
+        response_text = raw_response
+
+        # Remove various markdown formatting patterns
         if response_text.startswith("```json"):
             response_text = response_text[7:]
-        if response_text.startswith("```"):
+        elif response_text.startswith("```"):
             response_text = response_text[3:]
+
         if response_text.endswith("```"):
             response_text = response_text[:-3]
+
+        # Remove any remaining JSON/ code blocks
+        response_text = response_text.replace("```json", "").replace("```", "")
         response_text = response_text.strip()
 
-        # Parse JSON response
+        print(f"🧹 Cleaned Response: {response_text[:500]}...")
+
+        # Try multiple parsing strategies
+        result = None
+        parse_error = None
+
+        # Strategy 1: Use json module (safer)
         try:
-            result = eval(response_text)  # Safe here since we control the API output
+            import json
+            result = json.loads(response_text)
+            print("✅ JSON parsed successfully with json.loads()")
             return result
-        except:
-            # If JSON parsing fails, return error
-            return {
-                "error": "Failed to parse AI response",
-                "ai_response": "I had trouble generating the modified recipe. Please try rephrasing your request."
-            }
+        except json.JSONDecodeError as e:
+            parse_error = str(e)
+            print(f"⚠️  json.loads() failed: {parse_error}")
+
+        # Strategy 2: Fix common JSON issues and try again
+        try:
+            # Fix common issues: single quotes, trailing commas, etc.
+            fixed = response_text.replace("'", '"')
+            # Remove trailing commas before closing brackets/braces
+            fixed = fixed.replace(', }', ' }').replace(', ]', ' ]')
+
+            import json
+            result = json.loads(fixed)
+            print("✅ JSON parsed successfully after fixes")
+            return result
+        except json.JSONDecodeError as e:
+            print(f"⚠️  JSON parsing after fixes failed: {str(e)}")
+
+        # Strategy 3: Use eval as last resort
+        try:
+            result = eval(response_text)
+            print("✅ JSON parsed with eval()")
+            return result
+        except Exception as e:
+            print(f"⚠️  eval() failed: {str(e)}")
+
+        # If all strategies fail, return error with debugging info
+        print(f"❌ All JSON parsing strategies failed")
+
+        # Fallback: Try to extract useful info from the response
+        # Sometimes the AI returns text but includes the modification in the text
+        fallback_response = raw_response[:500]
+
+        return {
+            "error": "Failed to parse AI response",
+            "ai_response": "I had trouble generating the modified recipe in the correct format. " +
+                          "The AI system is working but returned an unexpected format. " +
+                          "Please try again or rephrase your request.",
+            "debug_info": {
+                "raw_response": raw_response[:300],
+                "parse_error": parse_error,
+                "model": getattr(model, '_model_name', 'unknown')
+            },
+            # Provide a safe fallback that keeps the original recipe
+            "updated_title": current_recipe.get('title', 'Recipe'),
+            "updated_ingredients": current_recipe.get('ingredients', []),
+            "updated_instructions": current_recipe.get('instructions', []),
+            "changes_summary": "Unable to apply changes due to formatting issue"
+        }
 
     except Exception as e:
-        raise Exception(f"Gemini API error: {str(e)}")
+        error_msg = f"Gemini API error: {str(e)}"
+        print(f"❌ {error_msg}")
+        raise Exception(error_msg)
 
 @app.route('/ai-modify-recipe', methods=['POST'])
 def modify_recipe():
