@@ -311,7 +311,13 @@ const RecipeRecommendation = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Could not modify recipe");
+        // Include debug info if available
+        let errorMessage = data.error || "Could not modify recipe";
+        if (data.debug_info && import.meta.env.DEV) {
+          console.error("Debug info:", data.debug_info);
+          errorMessage += ` (Debug: ${data.debug_info.parse_error || 'No parse error'})`;
+        }
+        throw new Error(errorMessage);
       }
 
       // Update state with AI response and modified recipe

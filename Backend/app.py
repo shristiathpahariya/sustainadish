@@ -531,6 +531,12 @@ Examples of bad changes (reject with ai_response explaining why):
 
     # Call Gemini API
     try:
+        print(f"\n{'='*60}")
+        print(f"🤖 Calling Gemini API...")
+        print(f"Model: {getattr(model, '_model_name', 'unknown')}")
+        print(f"Request: '{new_request if 'new_request' in locals() else 'unknown'}'")
+        print(f"{'='*60}\n")
+
         response = model.generate_content(
             prompt,
             generation_config={
@@ -540,42 +546,66 @@ Examples of bad changes (reject with ai_response explaining why):
             }
         )
 
-        raw_response = response.text.strip()
-        print(f"📥 Raw AI Response: {raw_response[:500]}...")  # Log first 500 chars for debugging
+        raw_response = response.text if response.text else ""
+
+        print(f"📥 RAW AI RESPONSE (Full):")
+        print(f"{'='*60}")
+        print(raw_response)
+        print(f"{'='*60}\n")
+
+        response_text = raw_response.strip()
 
         # Clean up the response (remove markdown code blocks if present)
-        response_text = raw_response
+        print(f"🧹 Cleaning response...")
 
         # Remove various markdown formatting patterns
         if response_text.startswith("```json"):
             response_text = response_text[7:]
+            print("  - Removed ```json prefix")
         elif response_text.startswith("```"):
             response_text = response_text[3:]
+            print("  - Removed ``` prefix")
 
         if response_text.endswith("```"):
             response_text = response_text[:-3]
+            print("  - Removed ``` suffix")
 
         # Remove any remaining JSON/ code blocks
-        response_text = response_text.replace("```json", "").replace("```", "")
+        if "```json" in response_text:
+            response_text = response_text.replace("```json", "")
+            print("  - Removed remaining ```json")
+        if "```" in response_text:
+            response_text = response_text.replace("```", "")
+            print("  - Removed remaining ```")
+
         response_text = response_text.strip()
 
-        print(f"🧹 Cleaned Response: {response_text[:500]}...")
+        print(f"🧹 CLEANED RESPONSE:")
+        print(f"{'='*60}")
+        print(response_text)
+        print(f"{'='*60}\n")
 
         # Try multiple parsing strategies
         result = None
         parse_error = None
 
         # Strategy 1: Use json module (safer)
+        print("Strategy 1: Attempting json.loads()...")
         try:
             import json
             result = json.loads(response_text)
-            print("✅ JSON parsed successfully with json.loads()")
+            print("✅ SUCCESS: JSON parsed successfully with json.loads()")
+            print(f"  - Keys: {list(result.keys())}")
+            print(f"  - Updated ingredients count: {len(result.get('updated_ingredients', []))}")
+            print(f"  - Updated instructions count: {len(result.get('updated_instructions', []))}")
+            print(f"{'='*60}\n")
             return result
         except json.JSONDecodeError as e:
-            parse_error = str(e)
-            print(f"⚠️  json.loads() failed: {parse_error}")
+            parse_error = f"json.loads(): {str(e)}"
+            print(f"⚠️  FAILED: {parse_error}")
 
         # Strategy 2: Fix common JSON issues and try again
+        print("\nStrategy 2: Fixing common JSON issues and retrying...")
         try:
             # Fix common issues: single quotes, trailing commas, etc.
             fixed = response_text.replace("'", '"')
@@ -584,25 +614,38 @@ Examples of bad changes (reject with ai_response explaining why):
 
             import json
             result = json.loads(fixed)
-            print("✅ JSON parsed successfully after fixes")
+            print("✅ SUCCESS: JSON parsed successfully after fixes")
+            print(f"  - Keys: {list(result.keys())}")
+            print(f"{'='*60}\n")
             return result
         except json.JSONDecodeError as e:
-            print(f"⚠️  JSON parsing after fixes failed: {str(e)}")
+            print(f"⚠️  FAILED: JSON parsing after fixes: {str(e)}")
 
         # Strategy 3: Use eval as last resort
+        print("\nStrategy 3: Attempting eval() as last resort...")
         try:
             result = eval(response_text)
-            print("✅ JSON parsed with eval()")
+            print("✅ SUCCESS: JSON parsed with eval()")
+            print(f"  - Keys: {list(result.keys())}")
+            print(f"{'='*60}\n")
             return result
         except Exception as e:
-            print(f"⚠️  eval() failed: {str(e)}")
+            print(f"⚠️  FAILED: eval() - {str(e)}")
 
         # If all strategies fail, return error with debugging info
-        print(f"❌ All JSON parsing strategies failed")
+        print(f"\n{'='*60}")
+        print(f"❌ ALL JSON PARSING STRATEGIES FAILED")
+        print(f"{'='*60}")
 
         # Fallback: Try to extract useful info from the response
         # Sometimes the AI returns text but includes the modification in the text
-        fallback_response = raw_response[:500]
+
+        print(f"\n📊 DEBUG INFO:")
+        print(f"  - Raw response length: {len(raw_response)} chars")
+        print(f"  - Cleaned response length: {len(response_text)} chars")
+        print(f"  - First 200 chars of raw: {raw_response[:200]}")
+        print(f"  - Last error: {parse_error}")
+        print(f"  - Model: {getattr(model, '_model_name', 'unknown')}")
 
         return {
             "error": "Failed to parse AI response",
@@ -610,9 +653,10 @@ Examples of bad changes (reject with ai_response explaining why):
                           "The AI system is working but returned an unexpected format. " +
                           "Please try again or rephrase your request.",
             "debug_info": {
-                "raw_response": raw_response[:300],
+                "raw_response": raw_response,
                 "parse_error": parse_error,
-                "model": getattr(model, '_model_name', 'unknown')
+                "model": getattr(model, '_model_name', 'unknown'),
+                "response_length": len(raw_response)
             },
             # Provide a safe fallback that keeps the original recipe
             "updated_title": current_recipe.get('title', 'Recipe'),
@@ -623,49 +667,81 @@ Examples of bad changes (reject with ai_response explaining why):
 
     except Exception as e:
         error_msg = f"Gemini API error: {str(e)}"
-        print(f"❌ {error_msg}")
+        print(f"\n❌ {error_msg}")
+        print(f"{'='*60}\n")
         raise Exception(error_msg)
 
 @app.route('/ai-modify-recipe', methods=['POST'])
 def modify_recipe():
     """Modify an existing recipe based on user's conversational request"""
     try:
+        print(f"\n{'='*70}")
+        print(f"🔔 /ai-modify-recipe endpoint called")
+        print(f"{'='*70}")
+
         data = request.get_json()
 
         if not data:
+            print("❌ No data provided in request")
             return jsonify({"error": "No data provided"}), 400
 
         current_recipe = data.get('current_recipe')
         conversation_history = data.get('conversation_history', [])
         new_request = data.get('new_request')
 
+        print(f"📝 Request Details:")
+        print(f"  - Recipe title: {current_recipe.get('title', 'Unknown')}")
+        print(f"  - Recipe has {len(current_recipe.get('ingredients', []))} ingredients")
+        print(f"  - Recipe has {len(current_recipe.get('instructions', []))} instructions")
+        print(f"  - Conversation history: {len(conversation_history)} messages")
+        print(f"  - New request: '{new_request}'")
+
         if not current_recipe or not new_request:
+            print("❌ Missing required fields")
             return jsonify({"error": "Missing required fields: current_recipe and new_request are required"}), 400
 
         if not genai_initialized:
+            print("❌ AI service not initialized")
             return jsonify({"error": "AI service not available. Please contact administrator."}), 503
 
         # Build conversation context
+        print(f"\n📋 Building conversation context...")
         conversation_context = build_conversation_context(conversation_history, new_request)
+        print(f"  - Context length: {len(conversation_context)} chars")
 
         # Call Gemini API
+        print(f"\n🤖 Calling Gemini API...")
         try:
             ai_result = call_gemini_for_modification(current_recipe, conversation_context)
+            print(f"\n✅ AI call completed successfully")
         except Exception as e:
+            print(f"\n❌ AI call failed: {str(e)}")
             return jsonify({"error": f"AI service error: {str(e)}"}), 500
 
         # Check for errors from AI
         if ai_result.get('error'):
+            print(f"\n⚠️  AI returned error: {ai_result.get('error')}")
+            print(f"  - AI response: {ai_result.get('ai_response', '')}")
             return jsonify({"error": ai_result['error'], "ai_response": ai_result.get('ai_response', '')}), 400
 
+        print(f"\n✅ AI response successful:")
+        print(f"  - Changes summary: {ai_result.get('changes_summary', '')}")
+        print(f"  - Updated title: {ai_result.get('updated_title', '')}")
+        print(f"  - Updated ingredients: {len(ai_result.get('updated_ingredients', []))}")
+        print(f"  - Updated instructions: {len(ai_result.get('updated_instructions', []))}")
+
         # Validate that modification isn't too drastic
+        print(f"\n🔍 Validating modification scope...")
         is_too_drastic, reason = is_modification_too_drastic(current_recipe, ai_result)
         if is_too_drastic:
+            print(f"❌ Modification too drastic: {reason}")
             return jsonify({
                 "error": "Modification too extensive",
                 "ai_response": reason,
                 "suggestion": "Try making smaller changes or look for a different recipe."
             }), 400
+
+        print(f"✅ Modification validation passed")
 
         # Build updated recipe object
         updated_recipe = {
@@ -676,6 +752,10 @@ def modify_recipe():
             "modification_changes": ai_result.get('changes_summary', '')
         }
 
+        print(f"\n{'='*70}")
+        print(f"✅ SUCCESS: Recipe modified successfully")
+        print(f"{'='*70}\n")
+
         return jsonify({
             "updated_recipe": updated_recipe,
             "changes_summary": ai_result.get('changes_summary', ''),
@@ -683,6 +763,9 @@ def modify_recipe():
         }), 200
 
     except Exception as e:
+        print(f"\n❌ SERVER ERROR: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 
