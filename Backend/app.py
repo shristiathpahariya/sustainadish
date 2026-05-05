@@ -134,6 +134,34 @@ def load_ml_models():
 # Load models at startup
 models_loaded = load_ml_models()
 
+# List available FREE TIER Gemini models for debugging
+if genai_initialized:
+    try:
+        print("\n📋 Available FREE TIER Gemini models:")
+        # Gemini 3 and 2.5 models are the latest free tier
+        free_tier_prefixes = [
+            'gemini-3-flash',
+            'gemini-3.1-flash',
+            'gemini-2.5-flash',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro',
+        ]
+
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                model_name = m.name
+                # Check if it's a free tier model
+                is_free = any(prefix in model_name for prefix in free_tier_prefixes)
+                if is_free:
+                    print(f"  ✅ {model_name} (FREE - 15 RPM)")
+                elif 'gemma' in model_name.lower():
+                    print(f"  ✅ {model_name} (FREE - Gemma open model)")
+                elif 'gemini' in model_name.lower():
+                    print(f"  ℹ️  {model_name} (Paid tier - Not recommended)")
+        print()
+    except Exception as e:
+        print(f"Could not list Gemini models: {e}")
+
 # Function to find similar recipes and return Title, Ingredients (as a list), Instructions, and coverage score
 def find_similar_recipes(user_input, num_similar=6):
     """Find similar recipes using cached ML models with ingredient coverage scoring."""
@@ -391,8 +419,56 @@ def call_gemini_for_modification(current_recipe: Dict, conversation_context: str
     if not genai_initialized:
         raise ValueError("Google Gemini API is not initialized. Please set GEMINI_API_KEY in environment.")
 
-    # Use gemini-1.5-flash for faster free tier performance
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Use LATEST FREE TIER models in order of preference:
+    # Gemini 3 Series (Latest Preview, FREE, 15 RPM):
+    #   - gemini-3-flash-preview: High-speed, general-purpose
+    #
+    # Gemini 2.5 Series (Latest, FREE, 15 RPM for Flash):
+    #   - gemini-2.5-flash: Balanced, fast, low-latency
+    #   - gemini-2.5-flash-lite: Efficient, cost-effective
+    #
+    # Gemini 1.5 Series (Stable, FREE, 15 RPM):
+    #   - gemini-1.5-flash: Fast, reliable
+    #   - gemini-1.5-pro: Smarter, more capable
+
+    free_models = [
+        # Gemini 3 Series (LATEST - Preview)
+        'models/gemini-3-flash-preview',
+        'gemini-3-flash-preview',
+
+        # Gemini 2.5 Flash (EXCEPTIONAL for recipe modifications)
+        'models/gemini-2.5-flash',
+        'gemini-2.5-flash',
+        'models/gemini-2.5-flash-lite',
+        'gemini-2.5-flash-lite',
+
+        # Gemini 1.5 Flash (Reliable fallback)
+        'models/gemini-1.5-flash-001',
+        'models/gemini-1.5-flash',
+
+        # Gemini 1.5 Pro (For complex modifications)
+        'models/gemini-1.5-pro-001',
+        'models/gemini-1.5-pro',
+
+        # Older Gemini Models
+        'models/gemini-pro',
+        'gemini-pro',
+    ]
+
+    print(f"Attempting to use latest free tier model...")
+
+    model = None
+    for model_name in free_models:
+        try:
+            model = genai.GenerativeModel(model_name)
+            print(f"✅ Successfully initialized model: {model_name}")
+            break
+        except Exception as e:
+            print(f"⚠️  {model_name} not available: {str(e)[:50]}")
+            continue
+
+    if model is None:
+        raise Exception("Could not initialize any free tier Gemini model. Check API key and network connection.")
 
     prompt = f"""You are a recipe customization assistant. The user wants to modify an existing recipe.
 Your job is to make ONLY the changes requested, keeping everything else exactly the same.
