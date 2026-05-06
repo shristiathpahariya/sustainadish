@@ -15,6 +15,10 @@ from spellchecker import SpellChecker
 import google.generativeai as genai
 from typing import Dict, List, Tuple
 from dotenv import load_dotenv
+from datetime import datetime
+import subprocess
+import threading
+import time
 
 # Load environment variables from .env file
 load_dotenv()
@@ -41,14 +45,14 @@ genai_initialized = False
 
 # Debug: Check if API key is loaded
 if GEMINI_API_KEY:
-    print(f"✅ GEMINI_API_KEY found (length: {len(GEMINI_API_KEY)} chars)")
+    print(f"[OK] GEMINI_API_KEY found (length: {len(GEMINI_API_KEY)} chars)")
     genai.configure(api_key=GEMINI_API_KEY)
     genai_initialized = True
-    print("✅ Google Gemini API initialized successfully")
+    print("[OK] Google Gemini API initialized successfully")
 else:
-    print("❌ GEMINI_API_KEY not found in environment variables!")
-    print("ℹ️  Make sure you have a .env file with: GEMINI_API_KEY=your-key-here")
-    print("ℹ️  Or set it as: export GEMINI_API_KEY=your-key-here")
+    print("[ERROR] GEMINI_API_KEY not found in environment variables!")
+    print("[INFO] Make sure you have a .env file with: GEMINI_API_KEY=your-key-here")
+    print("[INFO] Or set it as: export GEMINI_API_KEY=your-key-here")
 
 # Global variables to cache ML models (load once at startup)
 combined_embeddings = None
@@ -143,10 +147,112 @@ def load_ml_models():
 # Load models at startup
 models_loaded = load_ml_models()
 
+
+def _log(msg: str):
+    ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    print(f"[{ts}] {msg}")
+
+
+def scheduled_retrain():
+    """
+    Retrain the model and refresh in-memory artifacts.
+
+    This runs the Node retraining pipeline (which exports approved recipes,
+    writes versioned artifacts, updates active.json, and updates Backend/input/).
+    After that, this function reloads the pickles so the Flask process starts
+    using the new model without a restart.
+    """
+    global models_loaded
+
+    backend_root = os.path.dirname(os.path.abspath(__file__))
+
+    bump = os.environ.get("RETRAIN_BUMP", "patch").strip() or "patch"
+    max_features = os.environ.get("RETRAIN_MAX_FEATURES", "2000").strip() or "2000"
+    limit = os.environ.get("RETRAIN_LIMIT", "").strip()
+    activate = os.environ.get("RETRAIN_ACTIVATE", "true").strip().lower() != "false"
+
+    cmd = [
+        "node",
+        os.path.join("scripts", "run-retrain.js"),
+        "--bump",
+        bump,
+        "--activate",
+        "true" if activate else "false",
+        "--maxFeatures",
+        str(max_features),
+    ]
+    if limit:
+        cmd.extend(["--limit", limit])
+
+    _log(f"Scheduled retrain starting (bump={bump}, maxFeatures={max_features}, limit={limit or 'all'})")
+
+    try:
+        run = subprocess.run(
+            cmd,
+            cwd=backend_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if run.returncode != 0:
+            _log("Scheduled retrain failed")
+            if run.stdout:
+                print(run.stdout)
+            if run.stderr:
+                print(run.stderr)
+            return False
+
+        _log("Scheduled retrain pipeline completed successfully")
+        if run.stdout:
+            print(run.stdout)
+
+        # Reload models so this process uses the new artifacts.
+        models_loaded = load_ml_models()
+        if models_loaded:
+            _log("ML models reloaded after retrain")
+        else:
+            _log("ML models failed to reload after retrain (check input/ artifacts)")
+        return models_loaded
+    except Exception as e:
+        _log(f"Scheduled retrain error: {e}")
+        return False
+
+
+def start_retrain_scheduler():
+    enabled = os.environ.get("RETRAIN_SCHEDULER_ENABLED", "true").strip().lower() != "false"
+    if not enabled:
+        return
+
+    try:
+        interval_hours = float(os.environ.get("RETRAIN_INTERVAL_HOURS", "6"))
+    except Exception:
+        interval_hours = 6.0
+
+    if interval_hours <= 0:
+        interval_hours = 6.0
+
+    interval_seconds = int(interval_hours * 60 * 60)
+
+    # Required log line for the task output.
+    _log(f"Scheduler started - next retrain in {int(interval_hours)} hours")
+
+    def loop():
+        # Run once shortly after startup, then every interval.
+        time.sleep(5)
+        while True:
+            ok = scheduled_retrain()
+            if ok:
+                _log("Scheduled retrain job executed successfully")
+            # Sleep until next run
+            time.sleep(interval_seconds)
+
+    t = threading.Thread(target=loop, daemon=True)
+    t.start()
+
 # List available FREE TIER Gemini models for debugging
 if genai_initialized:
     try:
-        print("\n📋 Available FREE TIER Gemini models:")
+        print("\n[INFO] Available FREE TIER Gemini models:")
         # Gemini 3 and 2.5 models are the latest free tier
         free_tier_prefixes = [
             'gemini-3-flash',
@@ -162,11 +268,11 @@ if genai_initialized:
                 # Check if it's a free tier model
                 is_free = any(prefix in model_name for prefix in free_tier_prefixes)
                 if is_free:
-                    print(f"  ✅ {model_name} (FREE - 15 RPM)")
+                    print(f"  [OK] {model_name} (FREE - 15 RPM)")
                 elif 'gemma' in model_name.lower():
-                    print(f"  ✅ {model_name} (FREE - Gemma open model)")
+                    print(f"  [OK] {model_name} (FREE - Gemma open model)")
                 elif 'gemini' in model_name.lower():
-                    print(f"  ℹ️  {model_name} (Paid tier - Not recommended)")
+                    print(f"  [INFO] {model_name} (Paid tier - Not recommended)")
         print()
     except Exception as e:
         print(f"Could not list Gemini models: {e}")
@@ -470,10 +576,10 @@ def call_gemini_for_modification(current_recipe: Dict, conversation_context: str
     for model_name in free_models:
         try:
             model = genai.GenerativeModel(model_name)
-            print(f"✅ Successfully initialized model: {model_name}")
+            print(f"[OK] Successfully initialized model: {model_name}")
             break
         except Exception as e:
-            print(f"⚠️  {model_name} not available: {str(e)[:50]}")
+            print(f"[WARN] {model_name} not available: {str(e)[:50]}")
             continue
 
     if model is None:
@@ -565,7 +671,7 @@ Examples of bad changes (reject with ai_response explaining why):
 
         # Check if it's a rate limit (429) error
         if '429' in error_str or 'quota' in error_str.lower():
-            print(f"⚠️  Rate limit hit on current model: {model_name}")
+            print(f"[WARN] Rate limit hit on current model: {model_name}")
 
             # Try the next model in the list
             try:
@@ -590,13 +696,13 @@ Examples of bad changes (reject with ai_response explaining why):
                                 "top_p": 0.8,
                             }
                         )
-                        print(f"✅ Success with alternative model: {next_model_name}")
+                        print(f"[OK] Success with alternative model: {next_model_name}")
                         raw_response = alt_response.text if alt_response.text else ""
 
                         # Skip to the cleanup code (continue with raw_response)
                         break
                     except Exception as alt_error:
-                        print(f"⚠️  {next_model_name} also failed: {str(alt_error)[:50]}")
+                        print(f"[WARN] {next_model_name} also failed: {str(alt_error)[:50]}")
                         continue
 
                 if not raw_response:
@@ -619,7 +725,7 @@ Examples of bad changes (reject with ai_response explaining why):
                 }
         else:
             # Not a rate limit error, return error response instead of raising
-            print(f"❌ API Error: {error_str}")
+            print(f"[ERROR] API Error: {error_str}")
             return {
                 "error": "API error",
                 "ai_response": f"An error occurred while contacting the AI service: {str(api_error)[:200]}",
@@ -637,10 +743,10 @@ Examples of bad changes (reject with ai_response explaining why):
         # Check if response appears truncated
         response_text = raw_response.strip()
         if response_text and not response_text.endswith('}') and not response_text.endswith(']'):
-            print(f"⚠️  WARNING: Response appears to be truncated (length: {len(raw_response)} chars)")
-            print(f"⚠️  Recipe has {len(current_recipe.get('ingredients', []))} ingredients")
-            print(f"⚠️  Recipe has {len(current_recipe.get('instructions', []))} instructions")
-            print(f"⚠️  Response may be too large or recipe too complex\n")
+            print(f"[WARN] WARNING: Response appears to be truncated (length: {len(raw_response)} chars)")
+            print(f"[WARN] Recipe has {len(current_recipe.get('ingredients', []))} ingredients")
+            print(f"[WARN] Recipe has {len(current_recipe.get('instructions', []))} instructions")
+            print(f"[WARN] Response may be too large or recipe too complex\n")
 
         response_text = raw_response.strip()
 
@@ -683,7 +789,7 @@ Examples of bad changes (reject with ai_response explaining why):
         try:
             import json
             result = json.loads(response_text)
-            print("✅ SUCCESS: JSON parsed successfully with json.loads()")
+            print("[OK] SUCCESS: JSON parsed successfully with json.loads()")
             print(f"  - Keys: {list(result.keys())}")
             print(f"  - Updated ingredients count: {len(result.get('updated_ingredients', []))}")
             print(f"  - Updated instructions count: {len(result.get('updated_instructions', []))}")
@@ -691,7 +797,7 @@ Examples of bad changes (reject with ai_response explaining why):
             return result
         except json.JSONDecodeError as e:
             parse_error = f"json.loads(): {str(e)}"
-            print(f"⚠️  FAILED: {parse_error}")
+            print(f"[WARN] FAILED: {parse_error}")
 
         # Strategy 2: Fix common JSON issues and try again
         print("\nStrategy 2: Fixing common JSON issues and retrying...")
@@ -703,27 +809,27 @@ Examples of bad changes (reject with ai_response explaining why):
 
             import json
             result = json.loads(fixed)
-            print("✅ SUCCESS: JSON parsed successfully after fixes")
+            print("[OK] SUCCESS: JSON parsed successfully after fixes")
             print(f"  - Keys: {list(result.keys())}")
             print(f"{'='*60}\n")
             return result
         except json.JSONDecodeError as e:
-            print(f"⚠️  FAILED: JSON parsing after fixes: {str(e)}")
+            print(f"[WARN] FAILED: JSON parsing after fixes: {str(e)}")
 
         # Strategy 3: Use eval as last resort
         print("\nStrategy 3: Attempting eval() as last resort...")
         try:
             result = eval(response_text)
-            print("✅ SUCCESS: JSON parsed with eval()")
+            print("[OK] SUCCESS: JSON parsed with eval()")
             print(f"  - Keys: {list(result.keys())}")
             print(f"{'='*60}\n")
             return result
         except Exception as e:
-            print(f"⚠️  FAILED: eval() - {str(e)}")
+            print(f"[WARN] FAILED: eval() - {str(e)}")
 
         # If all strategies fail, return error with debugging info
         print(f"\n{'='*60}")
-        print(f"❌ ALL JSON PARSING STRATEGIES FAILED")
+        print("[ERROR] ALL JSON PARSING STRATEGIES FAILED")
         print(f"{'='*60}")
 
         # Fallback: Try to extract useful info from the response
@@ -760,7 +866,7 @@ Examples of bad changes (reject with ai_response explaining why):
 
     except Exception as e:
         error_msg = f"Gemini API error: {str(e)}"
-        print(f"\n❌ {error_msg}")
+        print(f"\n[ERROR] {error_msg}")
         print(f"{'='*60}\n")
         return {
             "error": "API error",
@@ -782,7 +888,7 @@ def modify_recipe():
         data = request.get_json()
 
         if not data:
-            print("❌ No data provided in request")
+            print("[ERROR] No data provided in request")
             return jsonify({"error": "No data provided"}), 400
 
         current_recipe = data.get('current_recipe')
@@ -797,15 +903,15 @@ def modify_recipe():
         print(f"  - New request: '{new_request}'")
 
         if not current_recipe or not new_request:
-            print("❌ Missing required fields")
+            print("[ERROR] Missing required fields")
             return jsonify({"error": "Missing required fields: current_recipe and new_request are required"}), 400
 
         if not genai_initialized:
-            print("❌ AI service not initialized")
+            print("[ERROR] AI service not initialized")
             return jsonify({"error": "AI service not available. Please contact administrator."}), 503
 
         # Build conversation context
-        print(f"\n📋 Building conversation context...")
+        print("\n[INFO] Building conversation context...")
         conversation_context = build_conversation_context(conversation_history, new_request)
         print(f"  - Context length: {len(conversation_context)} chars")
 
@@ -813,40 +919,40 @@ def modify_recipe():
         print(f"\n🤖 Calling Gemini API...")
         try:
             ai_result = call_gemini_for_modification(current_recipe, conversation_context)
-            print(f"\n✅ AI call completed successfully")
+            print("\n[OK] AI call completed successfully")
         except Exception as e:
-            print(f"\n❌ AI call failed: {str(e)}")
+            print(f"\n[ERROR] AI call failed: {str(e)}")
             return jsonify({"error": f"AI service error: {str(e)}"}), 500
 
         # Safety check: ensure ai_result is not None and is a dictionary
         if not ai_result or not isinstance(ai_result, dict):
-            print(f"\n❌ AI returned invalid result: {type(ai_result)}")
+            print(f"\n[ERROR] AI returned invalid result: {type(ai_result)}")
             return jsonify({"error": "AI service returned invalid response. Please try again."}), 500
 
         # Check for errors from AI
         if ai_result.get('error'):
-            print(f"\n⚠️  AI returned error: {ai_result.get('error')}")
+            print(f"\n[WARN] AI returned error: {ai_result.get('error')}")
             print(f"  - AI response: {ai_result.get('ai_response', '')}")
             return jsonify({"error": ai_result['error'], "ai_response": ai_result.get('ai_response', '')}), 400
 
-        print(f"\n✅ AI response successful:")
+        print("\n[OK] AI response successful:")
         print(f"  - Changes summary: {ai_result.get('changes_summary', '')}")
         print(f"  - Updated title: {ai_result.get('updated_title', '')}")
         print(f"  - Updated ingredients: {len(ai_result.get('updated_ingredients', []))}")
         print(f"  - Updated instructions: {len(ai_result.get('updated_instructions', []))}")
 
         # Validate that modification isn't too drastic
-        print(f"\n🔍 Validating modification scope...")
+        print("\n[INFO] Validating modification scope...")
         is_too_drastic, reason = is_modification_too_drastic(current_recipe, ai_result)
         if is_too_drastic:
-            print(f"❌ Modification too drastic: {reason}")
+            print(f"[ERROR] Modification too drastic: {reason}")
             return jsonify({
                 "error": "Modification too extensive",
                 "ai_response": reason,
                 "suggestion": "Try making smaller changes or look for a different recipe."
             }), 400
 
-        print(f"✅ Modification validation passed")
+        print("[OK] Modification validation passed")
 
         # Build updated recipe object
         updated_recipe = {
@@ -858,7 +964,7 @@ def modify_recipe():
         }
 
         print(f"\n{'='*70}")
-        print(f"✅ SUCCESS: Recipe modified successfully")
+        print("SUCCESS: Recipe modified successfully")
         print(f"{'='*70}\n")
 
         return jsonify({
@@ -868,7 +974,7 @@ def modify_recipe():
         }), 200
 
     except Exception as e:
-        print(f"\n❌ SERVER ERROR: {str(e)}")
+        print(f"\n[ERROR] SERVER ERROR: {str(e)}")
         import traceback
         print(traceback.format_exc())
         return jsonify({"error": f"Server error: {str(e)}"}), 500
@@ -879,5 +985,7 @@ def modify_recipe():
 if __name__ == "__main__":
     # Get port from environment variable or default to 5000
     port = int(os.environ.get('PORT', 5000))
+    # Start background retraining scheduler (every 6 hours by default)
+    start_retrain_scheduler()
     # Always run with debug=False in production
     app.run(host='0.0.0.0', port=port, debug=False)

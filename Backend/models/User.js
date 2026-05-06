@@ -52,14 +52,47 @@ const userSchema = new mongoose.Schema({
   },
   lastLogin: {
     type: Date
-  }
+  },
+  // Recipe / community contributions (denormalised for profiles & impact views)
+  recipesSubmittedCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  recipesApprovedCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  recipeLikesReceived: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  // Reputation (score is the source of truth; tier is maintained by app logic)
+  reputationScore: {
+    type: Number,
+    default: 0,
+    min: 0,
+    index: true,
+  },
+  reputationTier: {
+    type: String,
+    enum: ['bronze', 'silver', 'gold', 'platinum'],
+    default: 'bronze',
+    index: true,
+  },
+  lastContributionAt: {
+    type: Date,
+    default: null,
+  },
 }, {
   timestamps: true
 });
 
-// Index for faster queries
-userSchema.index({ email: 1 });
+// Index for faster queries (email index comes from unique: true on email)
 userSchema.index({ firstName: 1, lastName: 1 });
+userSchema.index({ reputationScore: -1, reputationTier: 1 });
 
 // Hash password before saving the user
 userSchema.pre('save', async function (next) {

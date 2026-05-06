@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 const { sanitizeAuthInput } = require('../middleware/validationMiddleware');
 const authMiddleware = require('../middleware/authMiddleware');
 const AuthController = require('../controllers/authController');
+const UserContributionsController = require('../controllers/userContributionsController');
 const { getAuthCookieOptions } = require('../config/authCookie');
 
 // Configure multer for profile picture uploads (in-memory storage)
@@ -346,6 +347,13 @@ router.post('/upload-profile-picture/:id', authMiddleware, profilePictureUpload.
 
 // Get current authenticated user
 router.get('/me', authMiddleware, AuthController.getCurrentUser);
+
+// Get current user's recipe contributions
+router.get(
+  '/me/contributions',
+  authMiddleware,
+  UserContributionsController.getUserContributions
+);
 
 // Logout route
 router.post('/logout', AuthController.logout);

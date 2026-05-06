@@ -11,6 +11,11 @@ const messageRoutes = require('./routes/messageRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const donationRoutes = require('./routes/donationRoutes');
 const savedRecipeRoutes = require('./routes/savedRecipeRoutes');
+const sharedRecipeRoutes = require('./routes/sharedRecipeRoutes');
+const communityRecipeRoutes = require('./routes/communityRecipeRoutes');
+const adminReviewRoutes = require('./routes/adminReviewRoutes');
+const trainingRoutes = require('./routes/trainingRoutes');
+const metricsRoutes = require('./routes/metricsRoutes');
 
 // Import middleware
 const { sanitizeInput } = require('./middleware/validationMiddleware');
@@ -52,6 +57,11 @@ app.use('/api', messageRoutes);
 app.use('/api', feedbackRoutes);
 app.use('/api', donationRoutes);
 app.use('/api', savedRecipeRoutes);
+app.use('/api', sharedRecipeRoutes);
+app.use('/api', communityRecipeRoutes);
+app.use('/api', adminReviewRoutes);
+app.use('/api', trainingRoutes);
+app.use('/api/metrics', metricsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "start": "vite preview",
     "deploy": "gh-pages -d build",
-    "backend": "node Backend/server.js"
+    "backend": "node Backend/server.js",
+    "backend:watch": "node --watch Backend/server.js"
   },
   "dependencies": {
     "axios": "^1.7.7",

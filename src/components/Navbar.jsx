@@ -43,6 +43,8 @@ export default function Navbar() {
   const handleClickAboutUs = () => go("/aboutus");
   const handleClickFeed = () => go("/feed");
   const handleClickContactUs = () => go("/contactUs");
+  const handleShareRecipe = () => go("/share-recipe");
+  const handleCommunityRecipes = () => go("/community-recipes");
 
   const handleDonateClick = () => {
     const stored = localStorage.getItem("user");
@@ -106,6 +108,12 @@ export default function Navbar() {
             </button>
             <button type="button" className="nav--title" onClick={handleClickFeed}>
               Feed
+            </button>
+            <button type="button" className="nav--title" onClick={handleCommunityRecipes}>
+              Community
+            </button>
+            <button type="button" className="nav--title" onClick={handleShareRecipe}>
+              Share Recipe
             </button>
             <button type="button" className="nav--title" onClick={handleDonateClick}>
               Donate

@@ -5,7 +5,19 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node --watch server.js",
+    "watch": "node --watch server.js",
+    "migrate": "node scripts/run-migrations.js",
+    "test:model-version": "node scripts/test-model-version-service.js",
+    "test:shared-recipe": "node scripts/test-shared-recipe-validation.js",
+    "seed": "node scripts/run-seeds.js",
+    "migrate:recipe": "node scripts/migrate-recipe-schema.js",
+    "seed:training-log": "node scripts/seed-training-log.js",
+    "migrate:user-contributions": "node scripts/migrate-user-contributions.js"
+    ,
+    "export:training-data": "node scripts/export-training-data.js"
+    ,
+    "retrain:model": "node scripts/run-retrain.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

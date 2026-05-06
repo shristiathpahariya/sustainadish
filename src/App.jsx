@@ -22,6 +22,8 @@ import Editprofile from './components/EditProfile';
 import Form from './components/Form';
 import Feed from './components/Feed';
 import SecondScroll from './components/SecondScroll';
+import ShareRecipe from './components/ShareRecipe';
+import CommunityRecipes from './components/CommunityRecipes';
 
 
 function App() {
@@ -101,6 +103,22 @@ function App() {
             <Minimal>
               <Feedback />
             </Minimal>
+          }
+        />
+        <Route
+          path="/share-recipe"
+          element={
+            <MainLayout>
+              <ShareRecipe />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/community-recipes"
+          element={
+            <MainLayout>
+              <CommunityRecipes />
+            </MainLayout>
           }
         />
         <Route
