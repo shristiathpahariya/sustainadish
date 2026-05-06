@@ -14,6 +14,10 @@ from nltk.corpus import stopwords
 from spellchecker import SpellChecker
 import google.generativeai as genai
 from typing import Dict, List, Tuple
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Download necessary NLTK data
 nltk.download('averaged_perceptron_tagger')
@@ -34,12 +38,17 @@ spell = SpellChecker()
 # Initialize Google Gemini API
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 genai_initialized = False
+
+# Debug: Check if API key is loaded
 if GEMINI_API_KEY:
+    print(f"✅ GEMINI_API_KEY found (length: {len(GEMINI_API_KEY)} chars)")
     genai.configure(api_key=GEMINI_API_KEY)
     genai_initialized = True
-    print("Google Gemini API initialized successfully")
+    print("✅ Google Gemini API initialized successfully")
 else:
-    print("Warning: GEMINI_API_KEY not found. AI recipe modification will not be available.")
+    print("❌ GEMINI_API_KEY not found in environment variables!")
+    print("ℹ️  Make sure you have a .env file with: GEMINI_API_KEY=your-key-here")
+    print("ℹ️  Or set it as: export GEMINI_API_KEY=your-key-here")
 
 # Global variables to cache ML models (load once at startup)
 combined_embeddings = None
@@ -432,23 +441,23 @@ def call_gemini_for_modification(current_recipe: Dict, conversation_context: str
     #   - gemini-1.5-pro: Smarter, more capable
 
     free_models = [
-        # Gemini 3 Series (LATEST - Preview)
-        'models/gemini-3-flash-preview',
-        'gemini-3-flash-preview',
-
-        # Gemini 2.5 Flash (EXCEPTIONAL for recipe modifications)
+        # Gemini 2.5 Flash - Distribute load across variations
         'models/gemini-2.5-flash',
-        'gemini-2.5-flash',
         'models/gemini-2.5-flash-lite',
+        'gemini-2.5-flash',
         'gemini-2.5-flash-lite',
 
-        # Gemini 1.5 Flash (Reliable fallback)
+        # Gemini 1.5 Flash - Alternate models to avoid rate limits
         'models/gemini-1.5-flash-001',
         'models/gemini-1.5-flash',
 
-        # Gemini 1.5 Pro (For complex modifications)
+        # Gemini 1.5 Pro - Good for complex modifications
         'models/gemini-1.5-pro-001',
         'models/gemini-1.5-pro',
+
+        # Gemma Open Models - Have separate quotas
+        'models/gemma-3-27b-it',
+        'models/gemma-4-26b-a4b-it',
 
         # Older Gemini Models
         'models/gemini-pro',
@@ -475,10 +484,10 @@ Your job is to make ONLY the changes requested, keeping everything else exactly 
 
 ## Current Recipe
 Title: {current_recipe.get('title', 'Recipe')}
-Ingredients:
+Ingredients ({len(current_recipe.get('ingredients', []))} total):
 {format_ingredients(current_recipe.get('ingredients', []))}
 
-Instructions:
+Instructions ({len(current_recipe.get('instructions', []))} steps):
 {format_instructions(current_recipe.get('instructions', []))}
 
 ## Conversation Context
@@ -498,6 +507,7 @@ IMPORTANT CONSTRAINTS:
 3. Maintain the same cooking flow and style
 4. Update quantities proportionally when substituting ingredients
 5. If request is impossible (e.g., "make vegan" when recipe has no meat), explain why
+6. Keep ingredient descriptions concise - use standard measurements and brief descriptions
 
 ## CRITICAL RESPONSE REQUIREMENTS
 You MUST return responses in THIS EXACT JSON format. NO other text before or after:
@@ -518,6 +528,7 @@ IMPORTANT:
 - NO markdown formatting outside the JSON
 - Just the JSON object and nothing else
 - Ensure the JSON is valid syntax (all quotes, commas, brackets correct)
+- Keep ingredient descriptions brief and standard
 
 Examples of good changes_summary:
 - "Made it vegetarian by replacing chicken with chickpeas"
@@ -533,7 +544,8 @@ Examples of bad changes (reject with ai_response explaining why):
     try:
         print(f"\n{'='*60}")
         print(f"🤖 Calling Gemini API...")
-        print(f"Model: {getattr(model, '_model_name', 'unknown')}")
+        model_name = getattr(model, '_model_name', 'unknown')
+        print(f"Model: {model_name}")
         print(f"Request: '{new_request if 'new_request' in locals() else 'unknown'}'")
         print(f"{'='*60}\n")
 
@@ -541,17 +553,94 @@ Examples of bad changes (reject with ai_response explaining why):
             prompt,
             generation_config={
                 "temperature": 0.3,  # Lower for more consistent modifications
-                "max_output_tokens": 2048,  # Increased for complex recipes
+                "max_output_tokens": 32768,  # Maximum for very complex recipes (78+ ingredients)
                 "top_p": 0.8,
             }
         )
 
         raw_response = response.text if response.text else ""
 
+    except Exception as api_error:
+        error_str = str(api_error)
+
+        # Check if it's a rate limit (429) error
+        if '429' in error_str or 'quota' in error_str.lower():
+            print(f"⚠️  Rate limit hit on current model: {model_name}")
+
+            # Try the next model in the list
+            try:
+                current_model_index = free_models.index(model_name) if model_name in free_models else -1
+            except ValueError:
+                current_model_index = -1
+
+            if current_model_index >= 0 and current_model_index < len(free_models) - 1:
+                # Try the next model
+                next_models = free_models[current_model_index + 1:]
+                print(f"🔄 Trying {len(next_models)} alternative models...")
+
+                for next_model_name in next_models[:3]:  # Try up to 3 alternatives
+                    try:
+                        print(f"🔄 Trying alternative model: {next_model_name}")
+                        alt_model = genai.GenerativeModel(next_model_name)
+                        alt_response = alt_model.generate_content(
+                            prompt,
+                            generation_config={
+                                "temperature": 0.3,
+                                "max_output_tokens": 32768,
+                                "top_p": 0.8,
+                            }
+                        )
+                        print(f"✅ Success with alternative model: {next_model_name}")
+                        raw_response = alt_response.text if alt_response.text else ""
+
+                        # Skip to the cleanup code (continue with raw_response)
+                        break
+                    except Exception as alt_error:
+                        print(f"⚠️  {next_model_name} also failed: {str(alt_error)[:50]}")
+                        continue
+
+                if not raw_response:
+                    return {
+                        "error": "All models rate-limited",
+                        "ai_response": "All available models are currently rate-limited. Please try again in 1-2 minutes.",
+                        "updated_title": current_recipe.get('title', 'Recipe'),
+                        "updated_ingredients": current_recipe.get('ingredients', []),
+                        "updated_instructions": current_recipe.get('instructions', []),
+                        "changes_summary": "Unable to apply changes - rate limit"
+                    }
+            else:
+                return {
+                    "error": "Rate limit exceeded",
+                    "ai_response": "The API rate limit has been exceeded. Please try again in 1-2 minutes.",
+                    "updated_title": current_recipe.get('title', 'Recipe'),
+                    "updated_ingredients": current_recipe.get('ingredients', []),
+                    "updated_instructions": current_recipe.get('instructions', []),
+                    "changes_summary": "Unable to apply changes - rate limit"
+                }
+        else:
+            # Not a rate limit error, return error response instead of raising
+            print(f"❌ API Error: {error_str}")
+            return {
+                "error": "API error",
+                "ai_response": f"An error occurred while contacting the AI service: {str(api_error)[:200]}",
+                "updated_title": current_recipe.get('title', 'Recipe'),
+                "updated_ingredients": current_recipe.get('ingredients', []),
+                "updated_instructions": current_recipe.get('instructions', []),
+                "changes_summary": "Unable to apply changes - API error"
+            }
+
         print(f"📥 RAW AI RESPONSE (Full):")
         print(f"{'='*60}")
         print(raw_response)
         print(f"{'='*60}\n")
+
+        # Check if response appears truncated
+        response_text = raw_response.strip()
+        if response_text and not response_text.endswith('}') and not response_text.endswith(']'):
+            print(f"⚠️  WARNING: Response appears to be truncated (length: {len(raw_response)} chars)")
+            print(f"⚠️  Recipe has {len(current_recipe.get('ingredients', []))} ingredients")
+            print(f"⚠️  Recipe has {len(current_recipe.get('instructions', []))} instructions")
+            print(f"⚠️  Response may be too large or recipe too complex\n")
 
         response_text = raw_response.strip()
 
@@ -649,27 +738,38 @@ Examples of bad changes (reject with ai_response explaining why):
 
         return {
             "error": "Failed to parse AI response",
-            "ai_response": "I had trouble generating the modified recipe in the correct format. " +
-                          "The AI system is working but returned an unexpected format. " +
-                          "Please try again or rephrase your request.",
+            "ai_response": "This recipe is quite large (" + str(len(current_recipe.get('ingredients', []))) + " ingredients), and I had trouble processing the entire modification. " +
+                          "The AI system generated a response but it was incomplete. " +
+                          "Please try a simpler recipe or ask for a simpler modification.",
             "debug_info": {
-                "raw_response": raw_response,
+                "raw_response": raw_response[:500],  # Limit debug info size
                 "parse_error": parse_error,
                 "model": getattr(model, '_model_name', 'unknown'),
-                "response_length": len(raw_response)
+                "response_length": len(raw_response),
+                "recipe_size": {
+                    "ingredients": len(current_recipe.get('ingredients', [])),
+                    "instructions": len(current_recipe.get('instructions', []))
+                }
             },
             # Provide a safe fallback that keeps the original recipe
             "updated_title": current_recipe.get('title', 'Recipe'),
             "updated_ingredients": current_recipe.get('ingredients', []),
             "updated_instructions": current_recipe.get('instructions', []),
-            "changes_summary": "Unable to apply changes due to formatting issue"
+            "changes_summary": "Unable to apply changes - recipe too complex"
         }
 
     except Exception as e:
         error_msg = f"Gemini API error: {str(e)}"
         print(f"\n❌ {error_msg}")
         print(f"{'='*60}\n")
-        raise Exception(error_msg)
+        return {
+            "error": "API error",
+            "ai_response": f"An error occurred: {str(e)[:200]}",
+            "updated_title": current_recipe.get('title', 'Recipe'),
+            "updated_ingredients": current_recipe.get('ingredients', []),
+            "updated_instructions": current_recipe.get('instructions', []),
+            "changes_summary": "Unable to apply changes - unexpected error"
+        }
 
 @app.route('/ai-modify-recipe', methods=['POST'])
 def modify_recipe():
@@ -717,6 +817,11 @@ def modify_recipe():
         except Exception as e:
             print(f"\n❌ AI call failed: {str(e)}")
             return jsonify({"error": f"AI service error: {str(e)}"}), 500
+
+        # Safety check: ensure ai_result is not None and is a dictionary
+        if not ai_result or not isinstance(ai_result, dict):
+            print(f"\n❌ AI returned invalid result: {type(ai_result)}")
+            return jsonify({"error": "AI service returned invalid response. Please try again."}), 500
 
         # Check for errors from AI
         if ai_result.get('error'):

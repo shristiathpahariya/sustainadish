@@ -25,7 +25,7 @@ function resolveMlApiUrl() {
   if (typeof window !== 'undefined') {
     const h = window.location.hostname;
     if (h === 'localhost' || h === '127.0.0.1') {
-      return 'http://127.0.0.1:5000';
+      return 'http://127.0.0.1:3000';  // Changed from 5000 to 3000 for local Flask backend
     }
   }
   return 'https://sustainadish-ml.onrender.com'.replace(/\/$/, '');

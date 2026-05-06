@@ -623,6 +623,19 @@
   text-transform: uppercase;
 }
 
+.recipe-modal__modified-hint {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  color: var(--rp-green-deep);
+  margin: 0.5rem 0 0;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  background: rgba(5, 150, 105, 0.08);
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  display: inline-block;
+}
+
 .recipe-card__saved-badge {
   display: inline-block;
   margin-left: 0.5rem;

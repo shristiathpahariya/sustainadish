@@ -194,19 +194,43 @@ const RecipeRecommendation = () => {
     setSavingRecipe(true);
     setSaveError("");
     try {
-      const { data } = await apiClient.post("/saved-recipes", {
+      // Use modified recipe if it exists, otherwise use original
+      const recipeToSave = modifiedRecipe || {
         title: modalTitle,
         ingredients: selectedRecipe.Ingredients ?? selectedRecipe.ingredients,
         instructions: selectedRecipe.Instructions ?? selectedRecipe.instructions ?? "",
+      };
+
+      const { data } = await apiClient.post("/saved-recipes", {
+        title: recipeToSave.title,
+        ingredients: Array.isArray(recipeToSave.ingredients)
+          ? recipeToSave.ingredients
+          : recipeToSave.ingredients,
+        instructions: Array.isArray(recipeToSave.instructions)
+          ? recipeToSave.instructions
+          : recipeToSave.instructions,
       });
       const key = data?.recipe?.recipeKey;
       if (key) {
         setSavedKeySet((prev) => new Set([...prev, key]));
       }
-      notifySuccess(
-        data?.alreadySaved ? "Already in your profile." : "Saved to your profile.",
-        "Recipes"
-      );
+
+      // Show different message based on whether it's modified
+      if (data?.alreadySaved) {
+        notifySuccess(
+          modifiedRecipe
+            ? "This modified recipe is already in your profile."
+            : "Already in your profile.",
+          "Recipes"
+        );
+      } else {
+        notifySuccess(
+          modifiedRecipe
+            ? "Modified recipe saved to your profile!"
+            : "Saved to your profile.",
+          "Recipes"
+        );
+      }
     } catch (err) {
       const msg =
         err.response?.data?.message ||
@@ -723,21 +747,27 @@ const RecipeRecommendation = () => {
                       onClick={handleSaveRecipe}
                       disabled={
                         savingRecipe ||
-                        (recipeHashes[selectedIndex] &&
-                          savedKeySet.has(recipeHashes[selectedIndex]))
+                        (!modifiedRecipe && recipeHashes[selectedIndex] && savedKeySet.has(recipeHashes[selectedIndex]))
                       }
                     >
-                      {recipeHashes[selectedIndex] && savedKeySet.has(recipeHashes[selectedIndex])
-                        ? "Saved to profile"
-                        : savingRecipe
-                          ? "Saving…"
-                          : "Save to profile"}
+                      {savingRecipe
+                        ? "Saving…"
+                        : modifiedRecipe
+                          ? "Save modified to profile"
+                          : recipeHashes[selectedIndex] && savedKeySet.has(recipeHashes[selectedIndex])
+                            ? "Saved to profile"
+                            : "Save to profile"}
                     </button>
                     {saveError ? (
                       <p className="recipe-modal__save-error" role="alert">
                         {saveError}
                       </p>
                     ) : null}
+                    {modifiedRecipe && (
+                      <p className="recipe-modal__modified-hint">
+                        💡 Saving the AI-modified version
+                      </p>
+                    )}
                   </>
                 ) : (
                   <p className="recipe-modal__login-hint">
