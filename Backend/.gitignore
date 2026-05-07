@@ -28,7 +28,6 @@ config.json
 *.db
 
 # Compiled files
-*.pkl
 *.h5
 *.hdf5
 *.sqlite
