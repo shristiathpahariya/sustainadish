@@ -158,20 +158,27 @@ def load_ml_models():
         with open('input/tfidf_vectorizer.pkl', 'rb') as f:
             vectorizer = pickle.load(f)
 
-        # Load recipe data - try JSON first (for sample data) then pkl (for trained model)
+        # Load recipe data - Prioritize trained model (pkl) over sample data (json)
+        # Try pkl first as it's the properly trained model
         try:
-            with open('input/sampled_data.json', 'r') as f:
-                recipe_data = json.load(f)
-            sampled_data = pd.DataFrame(recipe_data)
-            print("[INFO] Loaded sampled_data.json (sample data)")
+            with open('input/sampled_data.pkl', 'rb') as f:
+                sampled_data = pickle.load(f)
+            print("[INFO] Loaded sampled_data.pkl (trained model)")
         except FileNotFoundError:
+            print("[WARN] sampled_data.pkl not found, falling back to sample data.json")
             try:
-                with open('input/sampled_data.pkl', 'rb') as f:
-                    sampled_data = pickle.load(f)
-                print("[INFO] Loaded sampled_data.pkl (trained model)")
+                with open('input/sampled_data.json', 'r') as f:
+                    recipe_data = json.load(f)
+                sampled_data = pd.DataFrame(recipe_data)
+                print("[INFO] Loaded sampled_data.json (sample data - for testing only)")
             except FileNotFoundError:
                 print("[ERROR] Neither sampled_data.json nor sampled_data.pkl found in input/ directory!")
                 raise FileNotFoundError("sampled_data file not found")
+
+        # Verify that the vectorizer is fitted
+        if not hasattr(vectorizer, 'vocabulary_') or vectorizer.vocabulary_ is None:
+            print("[ERROR] TF-IDF vectorizer is not fitted!")
+            return False
 
         # Extract all unique ingredients for autocomplete (clean names only)
         print("Extracting ingredients for autocomplete...")
@@ -183,6 +190,7 @@ def load_ml_models():
                         all_ingredients_set.add(clean_name)
 
         print(f"Loaded {len(all_ingredients_set)} unique ingredients for autocomplete")
+        print(f"Loaded {len(sampled_data)} recipes from dataset")
         print("ML models loaded successfully!")
         return True
     except FileNotFoundError as e:
