@@ -35,7 +35,36 @@ app = Flask(__name__)
 # Force production mode
 app.config['DEBUG'] = False
 app.config['TESTING'] = False
-CORS(app)
+
+# Configure CORS to handle the exact origins needed
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://sustainadish-dev.vercel.app').rstrip('/')
+
+# Define allowed origins - both with and without trailing slash
+ALLOWED_ORIGINS = [
+    "https://sustainadish-dev.vercel.app",
+    "https://sustainadish-dev.vercel.app/",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+
+# Add FRONTEND_URL from environment variable (without trailing slash)
+if FRONTEND_URL and FRONTEND_URL not in ALLOWED_ORIGINS:
+    ALLOWED_ORIGINS.append(FRONTEND_URL)
+    # Also add it WITH trailing slash for safety
+    ALLOWED_ORIGINS.append(FRONTEND_URL + '/')
+
+print(f"[CORS] Allowed origins configured: {ALLOWED_ORIGINS}")
+
+CORS(app, resources={
+    r"/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "x-auth-token"],
+        "supports_credentials": True
+    }
+}, supports_credentials=True)
 
 # Initialize spellchecker
 spell = SpellChecker()
