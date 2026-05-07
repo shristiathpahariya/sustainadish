@@ -26,13 +26,39 @@ const PORT = process.env.PORT || 3000;
 // Middleware — `origin: true` reflects the request Origin so credentialed requests work
 // when the SPA (e.g. Vercel) and API (e.g. Render) are on different hosts. `origin: '*'`
 // is invalid with `credentials: true` and breaks cookies/headers in browsers.
-const corsOrigin =
-  process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*'
-    ? process.env.CORS_ORIGIN
-    : true;
+
+// Function to normalize URL (remove trailing slash)
+const normalizeOrigin = (origin) => {
+  if (!origin || origin === '*') return origin;
+  return origin.replace(/\/$/, '');
+};
+
+// Configure CORS to handle both with and without trailing slash
+const corsOriginConfig = process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*'
+  ? (origin, callback) => {
+      // Remove trailing slash from both origin and configured CORS origin for comparison
+      const normalizedOrigin = normalizeOrigin(origin);
+      const normalizedConfig = normalizeOrigin(process.env.CORS_ORIGIN);
+
+      console.log(`[CORS] Request origin: ${origin}`);
+      console.log(`[CORS] Normalized origin: ${normalizedOrigin}`);
+      console.log(`[CORS] Configured origin: ${process.env.CORS_ORIGIN}`);
+      console.log(`[CORS] Normalized config: ${normalizedConfig}`);
+
+      // Allow both localhost and the configured production origin
+      if (normalizedOrigin === normalizedConfig ||
+          origin.startsWith('http://localhost:') ||
+          origin.startsWith('http://127.0.0.1:')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  : true;
+
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: corsOriginConfig,
     credentials: true,
   })
 );
