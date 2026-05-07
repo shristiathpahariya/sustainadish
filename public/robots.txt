@@ -6,4 +6,4 @@ Disallow: /signup
 Disallow: /profile
 Disallow: /editprofile
 
-Sitemap: https://shristiathpahariya.github.io/sustainadish/sitemap.xml
+Sitemap: https://sustainadish.vercel.app/sitemap.xml
