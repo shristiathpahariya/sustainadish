@@ -91,21 +91,26 @@ sampled_data = None
 all_ingredients_set = set()  # Cache for ingredient suggestions
 
 # Must be defined before load_ml_models(): pickled TfidfVectorizer references __main__.recipe_tokenizer
+# This tokenizer MUST match the one used in retrain_model.py
 def recipe_tokenizer(sentence):
+    """Tokenizer that matches the training script (retrain_model.py)"""
+    if not isinstance(sentence, str):
+        sentence = "" if sentence is None else str(sentence)
+
     # Remove punctuation and set to lower case
     for punctuation_mark in string.punctuation:
-        sentence = sentence.replace(punctuation_mark, '').lower()
+        sentence = sentence.replace(punctuation_mark, "").lower()
 
     # Split sentence into words
-    listofwords = sentence.split(' ')
+    listofwords = sentence.split(" ")
     listofstemmed_words = []
 
-    # Remove stopwords and stem words
+    # Minimal tokenizer for speed and portability (no NLTK stemming during inference)
+    # This matches the training script's tokenizer
     for word in listofwords:
-        if (word not in ENGLISH_STOP_WORDS) and (word != ''):
-            # Stem words
-            stemmed_word = stemmer.stem(word)
-            listofstemmed_words.append(stemmed_word)
+        w = word.strip()
+        if w:
+            listofstemmed_words.append(w)
 
     return listofstemmed_words
 
@@ -153,10 +158,20 @@ def load_ml_models():
         with open('input/tfidf_vectorizer.pkl', 'rb') as f:
             vectorizer = pickle.load(f)
 
-        # Load recipe data from JSON for pandas version compatibility
-        with open('input/sampled_data.json', 'r') as f:
-            recipe_data = json.load(f)
-        sampled_data = pd.DataFrame(recipe_data)
+        # Load recipe data - try JSON first (for sample data) then pkl (for trained model)
+        try:
+            with open('input/sampled_data.json', 'r') as f:
+                recipe_data = json.load(f)
+            sampled_data = pd.DataFrame(recipe_data)
+            print("[INFO] Loaded sampled_data.json (sample data)")
+        except FileNotFoundError:
+            try:
+                with open('input/sampled_data.pkl', 'rb') as f:
+                    sampled_data = pickle.load(f)
+                print("[INFO] Loaded sampled_data.pkl (trained model)")
+            except FileNotFoundError:
+                print("[ERROR] Neither sampled_data.json nor sampled_data.pkl found in input/ directory!")
+                raise FileNotFoundError("sampled_data file not found")
 
         # Extract all unique ingredients for autocomplete (clean names only)
         print("Extracting ingredients for autocomplete...")
@@ -175,6 +190,8 @@ def load_ml_models():
         return False
     except Exception as e:
         print(f"Unexpected error loading ML models: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 # Load models at startup
