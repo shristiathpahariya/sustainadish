@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import os
 import pickle
+import json
 import re
 from sklearn.metrics.pairwise import cosine_similarity
 import gensim.models.keyedvectors as word2vec
@@ -122,8 +123,11 @@ def load_ml_models():
             combined_embeddings = pickle.load(f)
         with open('input/tfidf_vectorizer.pkl', 'rb') as f:
             vectorizer = pickle.load(f)
-        with open('input/sampled_data.pkl', 'rb') as f:
-            sampled_data = pickle.load(f)
+
+        # Load recipe data from JSON for pandas version compatibility
+        with open('input/sampled_data.json', 'r') as f:
+            recipe_data = json.load(f)
+        sampled_data = pd.DataFrame(recipe_data)
 
         # Extract all unique ingredients for autocomplete (clean names only)
         print("Extracting ingredients for autocomplete...")

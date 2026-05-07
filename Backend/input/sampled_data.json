@@ -1,0 +1,52 @@
+[
+  {
+    "Title": "Simple Tomato Pasta",
+    "Ingredients": "tomato, pasta, garlic, olive oil, basil, salt, pepper",
+    "Instructions": "Boil pasta. Saut\u00e9 garlic in olive oil. Add tomatoes. Mix with pasta. Garnish with basil."
+  },
+  {
+    "Title": "Cheese Quesadilla",
+    "Ingredients": "tortilla, cheese, onion, bell pepper, butter",
+    "Instructions": "Heat butter in pan. Add vegetables. Place tortilla in pan. Add cheese. Fold and cook until crispy."
+  },
+  {
+    "Title": "Vegetable Stir Fry",
+    "Ingredients": "broccoli, carrots, bell pepper, soy sauce, ginger, garlic, rice",
+    "Instructions": "Stir fry vegetables with ginger and garlic. Add soy sauce. Serve over rice."
+  },
+  {
+    "Title": "Chicken Salad",
+    "Ingredients": "chicken breast, lettuce, tomato, cucumber, olive oil, lemon juice",
+    "Instructions": "Grill chicken. Chop vegetables. Mix with cooked chicken. Dress with olive oil and lemon."
+  },
+  {
+    "Title": "Banana Smoothie",
+    "Ingredients": "banana, milk, honey, yogurt, vanilla extract",
+    "Instructions": "Blend all ingredients until smooth. Serve cold."
+  },
+  {
+    "Title": "Grilled Cheese Sandwich",
+    "Ingredients": "bread, cheese, butter",
+    "Instructions": "Butter bread slices. Place cheese between. Grill until golden and cheese melts."
+  },
+  {
+    "Title": "Vegetable Omelette",
+    "Ingredients": "eggs, milk, cheese, mushrooms, spinach, butter",
+    "Instructions": "Beat eggs with milk. Saut\u00e9 vegetables. Add eggs. Top with cheese. Fold and serve."
+  },
+  {
+    "Title": "Tomato Soup",
+    "Ingredients": "tomato, onion, garlic, vegetable broth, cream, basil, salt, pepper",
+    "Instructions": "Saut\u00e9 onion and garlic. Add tomatoes and broth. Simmer. Blend. Add cream and basil."
+  },
+  {
+    "Title": "Spaghetti Carbonara",
+    "Ingredients": "spaghetti, bacon, eggs, parmesan cheese, black pepper",
+    "Instructions": "Cook spaghetti. Fry bacon. Mix eggs with cheese. Combine all. Serve with pepper."
+  },
+  {
+    "Title": "Caesar Salad",
+    "Ingredients": "romaine lettuce, parmesan cheese, croutons, caesar dressing, anchovies",
+    "Instructions": "Chop lettuce. Add cheese and croutons. Toss with caesar dressing. Top with anchovies."
+  }
+]
