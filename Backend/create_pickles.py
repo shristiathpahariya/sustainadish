@@ -1,6 +1,11 @@
 """
-Create ML model files compatible with numpy 1.24.4
-Run this to regenerate pickle files with the correct numpy version
+Create ML model files compatible with numpy 1.26.4
+
+This script creates pickle files that work with numpy 1.x (which uses numpy.core).
+The deployment will use numpy 1.26.4, so we need pickle files compatible with that version.
+
+Usage:
+    python create_pickles.py
 """
 import pickle
 import numpy as np
@@ -87,17 +92,25 @@ if not os.path.exists(input_dir):
     os.makedirs(input_dir)
     print(f"Created directory: {input_dir}")
 
-# Save to input directory
+# Save to input directory using compatible protocol
+pickle_protocol = 4  # Protocol 4 is compatible across numpy 1.x and 2.x
+print(f"Using pickle protocol: {pickle_protocol}")
+
 with open(os.path.join(input_dir, 'combined_embeddings.pkl'), 'wb') as f:
-    pickle.dump(combined_embeddings, f)
+    pickle.dump(combined_embeddings, f, protocol=pickle_protocol)
     print(f"[OK] Saved combined_embeddings.pkl")
 
 with open(os.path.join(input_dir, 'sampled_data.pkl'), 'wb') as f:
-    pickle.dump(sampled_data, f)
+    pickle.dump(sampled_data, f, protocol=pickle_protocol)
     print(f"[OK] Saved sampled_data.pkl ({len(sampled_data)} recipes)")
 
 with open(os.path.join(input_dir, 'tfidf_vectorizer.pkl'), 'wb') as f:
-    pickle.dump(vectorizer, f)
+    pickle.dump(vectorizer, f, protocol=pickle_protocol)
     print(f"[OK] Saved tfidf_vectorizer.pkl")
 
-print("\n[OK] All pickle files created/updated with numpy", np.__version__)
+print(f"\n[OK] All pickle files created/updated")
+print(f"    NumPy version used: {np.__version__}")
+print(f"    Pickle protocol: {pickle_protocol}")
+print(f"    Files in: input/ directory")
+print(f"\n[INFO] Deployment will use numpy==1.26.4")
+print(f"       Pickle files should be compatible with that version.")
