@@ -47,14 +47,14 @@ function App() {
         />
 
         {/* Routes with BasicLayout (Navbar and Footer hidden) */}
-        <Route
+        {/* <Route
           path="/aboutus"
           element={
             <MainLayout>
               <About />
             </MainLayout>
           }
-        />
+        /> */}
         <Route
           path="/privacy"
           element={

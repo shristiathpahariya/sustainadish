@@ -101,9 +101,9 @@ export default function Navbar() {
             <button type="button" className="nav--title" onClick={handleClickHome}>
               Home
             </button>
-            <button type="button" className="nav--title" onClick={handleClickAboutUs}>
+            {/* <button type="button" className="nav--title" onClick={handleClickAboutUs}>
               About Us
-            </button>
+            </button> */}
             <button type="button" className="nav--title" onClick={handleClickFeed}>
               Feed
             </button>
