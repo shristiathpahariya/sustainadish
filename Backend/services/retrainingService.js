@@ -119,6 +119,9 @@ async function runFullRetrain(opts = {}) {
       pyArgs.push('--limit', String(Math.floor(opts.limit)));
     }
 
+    console.log(`[RETRAIN] Python command: "${py}"`);
+    console.log(`[RETRAIN] PYTHON env var: "${process.env.PYTHON}"`);
+
     const pyRun = spawnSync(py, pyArgs, {
       cwd: backendRoot,
       stdio: 'pipe',
