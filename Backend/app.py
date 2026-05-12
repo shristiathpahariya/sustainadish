@@ -950,7 +950,6 @@ Examples of bad changes (reject with ai_response explaining why):
             "updated_instructions": current_recipe.get('instructions', []),
             "changes_summary": "Unable to apply changes - recipe too complex"
         }
-    }
 
     except Exception as e:
         error_msg = f"Gemini API error: {str(e)}"
