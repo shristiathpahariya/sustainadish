@@ -1,18 +1,38 @@
-flask==3.0.0
-flask-cors==4.0.0
-python-dotenv==1.0.1
+# Python 3.13 compatible dependencies
+# Updated as of May 2026
 
-# Use compatible versions that work together on Render
-pandas==2.2.0
+# Flask and web framework
+flask>=3.0.3
+flask-cors>=4.0.1
+Werkzeug>=3.0.3
+
+# Environment variables and configuration
+python-dotenv>=1.0.1
+
+# Production server (Linux/Render)
+gunicorn>=21.2.0,<23.0.0
+
+# Data science and ML - Python 3.13 compatible versions
+# NumPy 2.x is required for Python 3.13 support
+numpy>=2.1.0
+
+# Pandas 2.2.3+ supports Python 3.13
+pandas>=2.2.3
+
+# SciPy needs to match NumPy version
+scipy>=1.14.0
+
+# Scikit-learn 1.5.2+ supports Python 3.13
+# Version 1.5.0 does NOT support Python 3.13
+scikit-learn>=1.5.2
+
+# NLP and text processing
+nltk>=3.9.1
+pyspellchecker>=0.7.2
+
+# Google Generative AI - NEW SDK with Python 3.13 support
+# The old google-generativeai package is deprecated
+google-genai>=0.3.0
+
+# PyArrow for pandas data handling
 pyarrow>=12.0.0
-numpy==1.26.4
-scipy==1.13.1
-scikit-learn==1.5.0
-
-# gensim removed - not used and causes version conflicts
-nltk==3.8.1
-pyspellchecker==0.7.2
-
-Werkzeug==3.0.1
-gunicorn==21.2.0
-google-generativeai==0.8.3

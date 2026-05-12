@@ -45,10 +45,11 @@ const corsOriginConfig = process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== 
       console.log(`[CORS] Configured origin: ${process.env.CORS_ORIGIN}`);
       console.log(`[CORS] Normalized config: ${normalizedConfig}`);
 
-      // Allow both localhost and the configured production origin
-      if (normalizedOrigin === normalizedConfig ||
+      // Allow both localhost, 127.0.0.1, undefined (same-origin), and the configured production origin
+      if (origin === undefined ||
           origin.startsWith('http://localhost:') ||
-          origin.startsWith('http://127.0.0.1:')) {
+          origin.startsWith('http://127.0.0.1:') ||
+          normalizedOrigin === normalizedConfig) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));

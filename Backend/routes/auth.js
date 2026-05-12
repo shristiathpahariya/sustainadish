@@ -13,6 +13,17 @@ const AuthController = require('../controllers/authController');
 const UserContributionsController = require('../controllers/userContributionsController');
 const { getAuthCookieOptions } = require('../config/authCookie');
 
+/** Parse ADMIN_EMAILS env var into a Set for fast lookup */
+function parseAdminEmails(raw) {
+  const s = typeof raw === 'string' ? raw : '';
+  return new Set(
+    s
+      .split(',')
+      .map((x) => x.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
 // Configure multer for profile picture uploads (in-memory storage)
 const profilePictureStorage = multer.memoryStorage();
 const profilePictureUpload = multer({
@@ -156,6 +167,10 @@ router.post('/login', sanitizeAuthInput, async (req, res) => {
 
     res.cookie('token', token, getAuthCookieOptions());
 
+    // Determine if user is admin
+    const adminEmails = parseAdminEmails(process.env.ADMIN_EMAILS);
+    const isAdmin = adminEmails.size > 0 && adminEmails.has(user.email.toLowerCase());
+
     // Return user data (password not included due to toJSON method)
     return res.status(200).json({
       message: 'Login successful',
@@ -168,7 +183,8 @@ router.post('/login', sanitizeAuthInput, async (req, res) => {
         location: user.location,
         contact: user.contact,
         profilePicture: user.profilePicture || '/user.png',
-        googleLogin: user.googleLogin === true
+        googleLogin: user.googleLogin === true,
+        isAdmin,
       }
     });
   } catch (error) {
@@ -234,6 +250,10 @@ router.post('/google', async (req, res) => {
 
     res.cookie('token', token, getAuthCookieOptions());
 
+    // Determine if user is admin
+    const adminEmails = parseAdminEmails(process.env.ADMIN_EMAILS);
+    const isAdmin = adminEmails.size > 0 && adminEmails.has(user.email.toLowerCase());
+
     return res.status(200).json({
       message: 'Login successful',
       token,
@@ -246,6 +266,7 @@ router.post('/google', async (req, res) => {
         contact: user.contact,
         profilePicture: user.profilePicture || '/user.png',
         googleLogin: user.googleLogin === true,
+        isAdmin,
       },
     });
   } catch (error) {

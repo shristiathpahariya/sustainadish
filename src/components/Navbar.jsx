@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut, Shield, BarChart3 } from "lucide-react";
 import logo from "/susss.png";
 import "../../src/Nav.css";
 import { useUser } from "../UserContext";
@@ -45,6 +45,9 @@ export default function Navbar() {
   const handleClickContactUs = () => go("/contactUs");
   const handleShareRecipe = () => go("/share-recipe");
   const handleCommunityRecipes = () => go("/community-recipes");
+
+  const handleAdminReview = () => go("/admin/review");
+  const handleAdminMetrics = () => go("/admin/metrics");
 
   const handleDonateClick = () => {
     const stored = localStorage.getItem("user");
@@ -103,9 +106,9 @@ export default function Navbar() {
             <button type="button" className="nav--title" onClick={handleClickHome}>
               Home
             </button>
-            <button type="button" className="nav--title" onClick={handleClickAboutUs}>
+            {/* <button type="button" className="nav--title" onClick={handleClickAboutUs}>
               About Us
-            </button>
+            </button> */}
             <button type="button" className="nav--title" onClick={handleClickFeed}>
               Feed
             </button>
@@ -121,6 +124,19 @@ export default function Navbar() {
             <button type="button" className="nav--title" onClick={handleClickContactUs}>
               Contact Us
             </button>
+            {user?.isAdmin && (
+              <>
+                <div className="navbar__admin-separator" />
+                <button type="button" className="nav--title nav--title--admin" onClick={handleAdminReview}>
+                  <Shield size={16} />
+                  Review
+                </button>
+                <button type="button" className="nav--title nav--title--admin" onClick={handleAdminMetrics}>
+                  <BarChart3 size={16} />
+                  Metrics
+                </button>
+              </>
+            )}
           </div>
 
           {user ? (

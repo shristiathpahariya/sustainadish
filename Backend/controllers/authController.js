@@ -1,6 +1,17 @@
 const User = require('../models/User');
 const { getAuthCookieClearOptions } = require('../config/authCookie');
 
+/** Parse ADMIN_EMAILS env var into a Set for fast lookup */
+function parseAdminEmails(raw) {
+  const s = typeof raw === 'string' ? raw : '';
+  return new Set(
+    s
+      .split(',')
+      .map((x) => x.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
 class AuthController {
   // Get current authenticated user
   static async getCurrentUser(req, res) {
@@ -15,9 +26,17 @@ class AuthController {
         });
       }
 
-      // User.toJSON automatically removes password
+      // Determine if user is admin based on ADMIN_EMAILS env
+      const adminEmails = parseAdminEmails(process.env.ADMIN_EMAILS);
+      const isAdmin = adminEmails.size > 0 && adminEmails.has(user.email.toLowerCase());
+
+      const userJson = user.toJSON();
+
       res.status(200).json({ 
-        user: user.toJSON() 
+        user: {
+          ...userJson,
+          isAdmin,
+        }
       });
     } catch (error) {
       console.error('Error fetching current user:', error);

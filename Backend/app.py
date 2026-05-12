@@ -12,7 +12,8 @@ import string
 import nltk
 from nltk.corpus import stopwords
 from spellchecker import SpellChecker
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from typing import Dict, List, Tuple
 from dotenv import load_dotenv
 from datetime import datetime
@@ -68,16 +69,21 @@ CORS(app, resources={
 # Initialize spellchecker
 spell = SpellChecker()
 
-# Initialize Google Gemini API
+# Initialize Google GenAI Client (new SDK with Python 3.13 support)
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+genai_client = None
 genai_initialized = False
 
 # Debug: Check if API key is loaded
 if GEMINI_API_KEY:
     print(f"[OK] GEMINI_API_KEY found (length: {len(GEMINI_API_KEY)} chars)")
-    genai.configure(api_key=GEMINI_API_KEY)
-    genai_initialized = True
-    print("[OK] Google Gemini API initialized successfully")
+    try:
+        genai_client = genai.Client(api_key=GEMINI_API_KEY)
+        genai_initialized = True
+        print("[OK] Google GenAI client initialized successfully")
+    except Exception as e:
+        print(f"[ERROR] Failed to initialize Google GenAI client: {str(e)}")
+        genai_initialized = False
 else:
     print("[ERROR] GEMINI_API_KEY not found in environment variables!")
     print("[INFO] Make sure you have a .env file with: GEMINI_API_KEY=your-key-here")
@@ -319,17 +325,17 @@ if genai_initialized:
             'gemini-1.5-pro',
         ]
 
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                model_name = m.name
-                # Check if it's a free tier model
-                is_free = any(prefix in model_name for prefix in free_tier_prefixes)
-                if is_free:
-                    print(f"  [OK] {model_name} (FREE - 15 RPM)")
-                elif 'gemma' in model_name.lower():
-                    print(f"  [OK] {model_name} (FREE - Gemma open model)")
-                elif 'gemini' in model_name.lower():
-                    print(f"  [INFO] {model_name} (Paid tier - Not recommended)")
+        for m in genai_client.models.list():
+            # New SDK model objects have different structure
+            model_name = getattr(m, 'name', str(m))
+            # Check if it's a free tier model
+            is_free = any(prefix in model_name for prefix in free_tier_prefixes)
+            if is_free:
+                print(f"  [OK] {model_name} (FREE - 15 RPM)")
+            elif 'gemma' in model_name.lower():
+                print(f"  [OK] {model_name} (FREE - Gemma open model)")
+            elif 'gemini' in model_name.lower():
+                print(f"  [INFO] {model_name} (Paid tier - Not recommended)")
         print()
     except Exception as e:
         print(f"Could not list Gemini models: {e}")
@@ -629,18 +635,24 @@ def call_gemini_for_modification(current_recipe: Dict, conversation_context: str
 
     print(f"Attempting to use latest free tier model...")
 
-    model = None
+    selected_model_name = None
     for model_name in free_models:
         try:
-            model = genai.GenerativeModel(model_name)
-            print(f"[OK] Successfully initialized model: {model_name}")
+            # Test if the model is available by trying to use it
+            test_response = genai_client.models.generate_content(
+                model=model_name,
+                contents="test",
+                config=types.GenerateContentConfig(max_output_tokens=1)
+            )
+            selected_model_name = model_name
+            print(f"[OK] Successfully verified model: {model_name}")
             break
         except Exception as e:
             print(f"[WARN] {model_name} not available: {str(e)[:50]}")
             continue
 
-    if model is None:
-        raise Exception("Could not initialize any free tier Gemini model. Check API key and network connection.")
+    if not selected_model_name:
+        raise Exception("Could not verify any free tier Gemini model. Check API key and network connection.")
 
     prompt = f"""You are a recipe customization assistant. The user wants to modify an existing recipe.
 Your job is to make ONLY the changes requested, keeping everything else exactly the same.
@@ -707,18 +719,18 @@ Examples of bad changes (reject with ai_response explaining why):
     try:
         print(f"\n{'='*60}")
         print(f"🤖 Calling Gemini API...")
-        model_name = getattr(model, '_model_name', 'unknown')
-        print(f"Model: {model_name}")
-        print(f"Request: '{new_request if 'new_request' in locals() else 'unknown'}'")
+        print(f"Model: {selected_model_name}")
+        print(f"Request: '{new_request if 'new_request' in locals() else 'unknown'}")
         print(f"{'='*60}\n")
 
-        response = model.generate_content(
-            prompt,
-            generation_config={
-                "temperature": 0.3,  # Lower for more consistent modifications
-                "max_output_tokens": 32768,  # Maximum for very complex recipes (78+ ingredients)
-                "top_p": 0.8,
-            }
+        response = genai_client.models.generate_content(
+            model=selected_model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.3,  # Lower for more consistent modifications
+                max_output_tokens=32768,  # Maximum for very complex recipes (78+ ingredients)
+                top_p=0.8,
+            )
         )
 
         raw_response = response.text if response.text else ""
@@ -728,11 +740,11 @@ Examples of bad changes (reject with ai_response explaining why):
 
         # Check if it's a rate limit (429) error
         if '429' in error_str or 'quota' in error_str.lower():
-            print(f"[WARN] Rate limit hit on current model: {model_name}")
+            print(f"[WARN] Rate limit hit on current model: {selected_model_name}")
 
             # Try the next model in the list
             try:
-                current_model_index = free_models.index(model_name) if model_name in free_models else -1
+                current_model_index = free_models.index(selected_model_name) if selected_model_name in free_models else -1
             except ValueError:
                 current_model_index = -1
 
@@ -744,14 +756,14 @@ Examples of bad changes (reject with ai_response explaining why):
                 for next_model_name in next_models[:3]:  # Try up to 3 alternatives
                     try:
                         print(f"🔄 Trying alternative model: {next_model_name}")
-                        alt_model = genai.GenerativeModel(next_model_name)
-                        alt_response = alt_model.generate_content(
-                            prompt,
-                            generation_config={
-                                "temperature": 0.3,
-                                "max_output_tokens": 32768,
-                                "top_p": 0.8,
-                            }
+                        alt_response = genai_client.models.generate_content(
+                            model=next_model_name,
+                            contents=prompt,
+                            config=types.GenerateContentConfig(
+                                temperature=0.3,
+                                max_output_tokens=32768,
+                                top_p=0.8,
+                            )
                         )
                         print(f"[OK] Success with alternative model: {next_model_name}")
                         raw_response = alt_response.text if alt_response.text else ""
@@ -790,6 +802,24 @@ Examples of bad changes (reject with ai_response explaining why):
                 "updated_ingredients": current_recipe.get('ingredients', []),
                 "updated_instructions": current_recipe.get('instructions', []),
                 "changes_summary": "Unable to apply changes - API error"
+            }
+
+    # Process the response (this code runs for successful API calls, including fallback models)
+    try:
+        # Ensure raw_response exists and is not None
+        if 'raw_response' not in locals() or raw_response is None:
+            raw_response = ""
+
+        # Check if we got an empty response
+        if not raw_response or raw_response == "":
+            print("[ERROR] Empty or missing raw response from Gemini API")
+            return {
+                "error": "Empty response",
+                "ai_response": "The AI service returned an empty response. Please try again.",
+                "updated_title": current_recipe.get('title', 'Recipe'),
+                "updated_ingredients": current_recipe.get('ingredients', []),
+                "updated_instructions": current_recipe.get('instructions', []),
+                "changes_summary": "Unable to apply changes - empty response"
             }
 
         print(f"📥 RAW AI RESPONSE (Full):")
@@ -897,7 +927,7 @@ Examples of bad changes (reject with ai_response explaining why):
         print(f"  - Cleaned response length: {len(response_text)} chars")
         print(f"  - First 200 chars of raw: {raw_response[:200]}")
         print(f"  - Last error: {parse_error}")
-        print(f"  - Model: {getattr(model, '_model_name', 'unknown')}")
+        print(f"  - Model: {selected_model_name}")
 
         return {
             "error": "Failed to parse AI response",
@@ -907,7 +937,7 @@ Examples of bad changes (reject with ai_response explaining why):
             "debug_info": {
                 "raw_response": raw_response[:500],  # Limit debug info size
                 "parse_error": parse_error,
-                "model": getattr(model, '_model_name', 'unknown'),
+                "model": selected_model_name,
                 "response_length": len(raw_response),
                 "recipe_size": {
                     "ingredients": len(current_recipe.get('ingredients', [])),
@@ -920,6 +950,7 @@ Examples of bad changes (reject with ai_response explaining why):
             "updated_instructions": current_recipe.get('instructions', []),
             "changes_summary": "Unable to apply changes - recipe too complex"
         }
+    }
 
     except Exception as e:
         error_msg = f"Gemini API error: {str(e)}"
@@ -933,6 +964,17 @@ Examples of bad changes (reject with ai_response explaining why):
             "updated_instructions": current_recipe.get('instructions', []),
             "changes_summary": "Unable to apply changes - unexpected error"
         }
+    # Fallback: This should never be reached, but ensures function always returns a dict
+    print("[ERROR] Unexpected: Function reached end without returning")
+    return {
+        "error": "Unexpected error",
+        "ai_response": "An unexpected error occurred while processing your request. Please try again.",
+        "updated_title": current_recipe.get('title', 'Recipe'),
+        "updated_ingredients": current_recipe.get('ingredients', []),
+        "updated_instructions": current_recipe.get('instructions', []),
+        "changes_summary": "Unable to apply changes"
+    }
+
 
 @app.route('/ai-modify-recipe', methods=['POST'])
 def modify_recipe():
@@ -1040,8 +1082,9 @@ def modify_recipe():
 
 # Run the Flask app
 if __name__ == "__main__":
-    # Get port from environment variable or default to 5000
-    port = int(os.environ.get('PORT', 5000))
+    # Get port from ML_PORT environment variable or default to 5000
+    # Don't use PORT variable as it's used by Express server
+    port = int(os.environ.get('ML_PORT', 5000))
     # Start background retraining scheduler (every 6 hours by default)
     start_retrain_scheduler()
     # Always run with debug=False in production

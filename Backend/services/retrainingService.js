@@ -4,7 +4,8 @@ const { spawnSync } = require('child_process');
 const mongoose = require('mongoose');
 
 const TrainingLog = require('../models/TrainingLog');
-const { exportApprovedRecipesToCsv } = require('./dataExtractionService');
+const Recipe = require('../models/Recipe');
+const { exportApprovedRecipesToCsv, extractApprovedRecipes } = require('./dataExtractionService');
 const modelVersionService = require('./modelVersionService');
 
 function nowIsoCompact() {
@@ -66,7 +67,11 @@ async function runFullRetrain(opts = {}) {
   fs.mkdirSync(exportDir, { recursive: true });
   const csvPath = path.join(exportDir, `training-data-${runKey}.csv`);
 
-  await mongoose.connect(dbURI);
+  // Ensure MongoDB connection is active (main server manages connection)
+  if (mongoose.connection.readyState !== 1) {
+    console.log('MongoDB not connected, connecting...');
+    await mongoose.connect(dbURI);
+  }
 
   let logDoc = null;
   try {
@@ -83,6 +88,14 @@ async function runFullRetrain(opts = {}) {
       },
     });
 
+    // First, extract recipes to get their IDs (needed for trainingStatus update)
+    console.log('Extracting approved recipes...');
+    const { recipes: approvedRecipes, stats: recipeStats } = await extractApprovedRecipes({ limit: opts.limit });
+    const recipeIds = approvedRecipes.map(r => r._id);
+    console.log(`Found ${recipeIds.length} recipes for training`);
+
+    // Then export to CSV for training
+    console.log('Exporting recipes to CSV...');
     const exportResult = await exportApprovedRecipesToCsv({
       outputPath: csvPath,
       limit: opts.limit,
@@ -153,7 +166,28 @@ async function runFullRetrain(opts = {}) {
       { new: true }
     ).lean();
 
-    await mongoose.disconnect();
+    // Update trainingStatus for all recipes included in this training run
+    console.log(`Updating trainingStatus for ${recipeIds.length} recipes...`);
+    try {
+      const updateResult = await Recipe.updateMany(
+        { _id: { $in: recipeIds } },
+        { $set: { trainingStatus: 'included' } }
+      );
+      console.log(`✓ Updated ${updateResult.modifiedCount} recipes to 'included' status`);
+
+      // Set any remaining published recipes with 'pending' status to 'excluded'
+      const excludedResult = await Recipe.updateMany(
+        { status: 'published', trainingStatus: 'pending' },
+        { $set: { trainingStatus: 'excluded' } }
+      );
+      console.log(`✓ Set ${excludedResult.modifiedCount} recipes to 'excluded' status`);
+    } catch (updateError) {
+      console.error('Error updating trainingStatus:', updateError);
+      // Don't fail the training, just log the error
+    }
+
+    // Don't disconnect - connection is managed by the main server
+    // await mongoose.disconnect();
 
     return {
       ok: true,
@@ -182,7 +216,8 @@ async function runFullRetrain(opts = {}) {
       });
     }
 
-    await mongoose.disconnect();
+    // Don't disconnect on error - connection is managed by the main server
+    // await mongoose.disconnect();
     throw err;
   }
 }

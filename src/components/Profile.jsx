@@ -1,7 +1,7 @@
-import { useEffect, useLayoutEffect, useState, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
-import { Trash2 } from "lucide-react";
+import { Trash2, Heart, Clock, CheckCircle, XCircle, AlertCircle, Eye } from "lucide-react";
 import "../.././src/Profile.css";
 import { useUser } from "../UserContext";
 import { useMessageDialog } from "../context/MessageDialogContext";
@@ -44,6 +44,12 @@ const Profile = () => {
   const [selectedSaved, setSelectedSaved] = useState(null);
   const [removingSavedRecipeId, setRemovingSavedRecipeId] = useState(null);
   const postsContainerRef = useRef(null);
+
+  // Contributions state
+  const [contributions, setContributions] = useState([]);
+  const [loadingContributions, setLoadingContributions] = useState(true);
+  const [selectedContribution, setSelectedContribution] = useState(null);
+  const contributionsContainerRef = useRef(null);
 
   useEffect(() => {
     const updateUserData = () => {
@@ -112,6 +118,31 @@ const Profile = () => {
     fetchSavedRecipes();
   }, [user]);
 
+  // Fetch user's recipe contributions
+  useEffect(() => {
+    const fetchContributions = async () => {
+      const uid = user?._id || user?.id;
+      if (!user || !uid) {
+        setContributions([]);
+        setLoadingContributions(false);
+        return;
+      }
+      setLoadingContributions(true);
+      try {
+        const response = await apiClient.get("/auth/me/contributions");
+        const list = Array.isArray(response.data?.recipes) ? response.data.recipes : [];
+        setContributions(list);
+      } catch (error) {
+        console.error("Error fetching contributions:", error);
+        if (error.response?.status === 401) navigateRef.current("/login");
+        setContributions([]);
+      } finally {
+        setLoadingContributions(false);
+      }
+    };
+    fetchContributions();
+  }, [user]);
+
   // Profile entrance
   useEffect(() => {
     gsap.to(".profile-info", {
@@ -143,8 +174,83 @@ const Profile = () => {
     return () => ctx.revert();
   }, [posts]);
 
+  // Contributions cards entrance
+  useLayoutEffect(() => {
+    if (contributions.length === 0 || !contributionsContainerRef.current) return;
+    const cards = contributionsContainerRef.current.querySelectorAll(".contribution-card");
+    if (cards.length === 0) return;
+
+    const ctx = gsap.context(() => {
+      gsap.from(cards, {
+        opacity: 0,
+        y: 30,
+        duration: 0.6,
+        ease: "power2.out",
+        stagger: 0.08,
+        delay: 0.1,
+      });
+    }, contributionsContainerRef);
+
+    return () => ctx.revert();
+  }, [contributions]);
+
   const handleEdit = () => navigateRef.current("/editprofile");
   const handleCommunityFeed = () => navigateRef.current("/feed");
+
+  // Contribution handlers
+  const openContributionDetail = (contribution) => {
+    setSelectedContribution(contribution);
+    setTimeout(() => {
+      const overlay = document.querySelector(".contrib-popup-overlay");
+      if (overlay) overlay.classList.add("active");
+      gsap.to(".contrib-popup-content", {
+        y: 0,
+        scale: 1,
+        duration: 0.5,
+        ease: "back.out(1.7)",
+      });
+    }, 10);
+  };
+
+  const closeContributionDetail = (e) => {
+    if (e && e.target !== e.currentTarget) return;
+    gsap.to(".contrib-popup-content", {
+      y: 20,
+      scale: 0.95,
+      duration: 0.3,
+      ease: "power2.in",
+    });
+    const overlay = document.querySelector(".contrib-popup-overlay");
+    if (overlay) overlay.classList.remove("active");
+    gsap.to(".contrib-popup-overlay", {
+      opacity: 0,
+      duration: 0.25,
+      ease: "power2.in",
+      onComplete: () => setSelectedContribution(null),
+    });
+  };
+
+  // Status helpers
+  const getStatusLabel = (indicator) => {
+    switch (indicator) {
+      case 'approved': return { label: 'Approved', icon: CheckCircle, color: '#059669', bg: '#d1fae5' };
+      case 'pending': return { label: 'Pending', icon: AlertCircle, color: '#d97706', bg: '#fef3c7' };
+      case 'rejected': return { label: 'Rejected', icon: XCircle, color: '#dc2626', bg: '#fef2f2' };
+      default: return { label: 'Draft', icon: AlertCircle, color: '#888780', bg: '#f5f5f4' };
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
 
   const handleDeletePost = async (post, event) => {
     if (event) event.stopPropagation();
@@ -364,6 +470,81 @@ const Profile = () => {
         </div>
       </div>
 
+      {/* ── My Contributions ── */}
+      <div className="separator-editorial">
+        <div className="separator-inner">
+          <div className="sep-line" />
+          <div className="sep-diamond" />
+          <span className="sep-label">My contributions</span>
+          <div className="sep-diamond" />
+          <div className="sep-line" />
+        </div>
+      </div>
+
+      <div className="posts-section">
+        <p className="postshead">Recipe contributions</p>
+        <p className="postshead-sub">Recipes you've shared with the community</p>
+
+        <div className="contributions-grid" ref={contributionsContainerRef}>
+          {loadingContributions ? (
+            <p className="contributions-loading">Loading contributions…</p>
+          ) : contributions.length > 0 ? (
+            contributions.map((item) => {
+              const statusInfo = getStatusLabel(item.indicator);
+              const StatusIcon = statusInfo.icon;
+              return (
+                <div
+                  key={item._id}
+                  className="contribution-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openContributionDetail(item)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openContributionDetail(item);
+                    }
+                  }}
+                >
+                  <div className="contribution-card__header">
+                    <div className="contribution-card__title">{item.title}</div>
+                  </div>
+                  <div className="contribution-card__meta">
+                    <span className="contribution-card__status">
+                      <span
+                        className="contribution-status-badge"
+                        style={{ background: statusInfo.bg, color: statusInfo.color }}
+                      >
+                        <StatusIcon size={12} />
+                        {statusInfo.label}
+                      </span>
+                    </span>
+                    <span className="contribution-card__date">
+                      <Clock size={12} />
+                      {formatDate(item.createdAt)}
+                    </span>
+                    <span className="contribution-card__likes">
+                      <Heart size={12} />
+                      {item.likes || 0}
+                    </span>
+                  </div>
+                  <div className="contribution-card__footer">
+                    <span className="contribution-card__view">
+                      <Eye size={12} />
+                      View details
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="contributions-empty">
+              No recipe contributions yet. Share a recipe to see it here!
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* ── Editorial divider ── */}
       <div className="separator-editorial">
         <div className="separator-inner">
@@ -484,6 +665,86 @@ const Profile = () => {
                       ? "Removing…"
                       : "Remove from saved"}
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Contribution detail popup ── */}
+      {selectedContribution && (
+        <div className="contrib-popup-overlay" onClick={closeContributionDetail}>
+          <div
+            className="contrib-popup-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="popup-header-bar">
+              <span>Recipe contribution</span>
+              <button
+                type="button"
+                className="close-btn"
+                onClick={() => setSelectedContribution(null)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="contrib-popup__scroll">
+              <div className="popup-details">
+                {(function() {
+                  const statusInfo = selectedContribution.indicator
+                    ? getStatusLabel(selectedContribution.indicator)
+                    : null;
+                  const StatusIcon = statusInfo?.icon;
+                  return (
+                    <div className="contrib-popup__status-bar">
+                      {statusInfo && (
+                        <span
+                          className="contribution-status-badge contribution-status-badge--lg"
+                          style={{ background: statusInfo.bg, color: statusInfo.color }}
+                        >
+                          <StatusIcon size={16} />
+                          {statusInfo.label}
+                        </span>
+                      )}
+                      <span className="contrib-popup__date">
+                        <Clock size={14} />
+                        Submitted {formatDate(selectedContribution.createdAt)}
+                      </span>
+                      <span className="contrib-popup__likes">
+                        <Heart size={14} />
+                        {selectedContribution.likes || 0} likes
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                <h3 className="contrib-popup__title">{selectedContribution.title}</h3>
+
+                <div className="popup-field saved-recipe-popup__block">
+                  <strong>Ingredients</strong>
+                  {splitIngredients(selectedContribution.ingredients).length > 0 ? (
+                    <ul className="contrib-popup__list">
+                      {splitIngredients(selectedContribution.ingredients).map((line, idx) => (
+                        <li key={idx}>{typeof line === 'string' ? line : JSON.stringify(line)}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="contrib-popup__empty">No ingredients listed.</p>
+                  )}
+                </div>
+                <div className="popup-field saved-recipe-popup__block">
+                  <strong>Instructions</strong>
+                  {splitInstructions(selectedContribution.instructions).length > 0 ? (
+                    <ol className="contrib-popup__steps">
+                      {splitInstructions(selectedContribution.instructions).map((step, idx) => (
+                        <li key={idx}>{typeof step === 'string' ? step : JSON.stringify(step)}</li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="contrib-popup__empty">No instructions listed.</p>
+                  )}
                 </div>
               </div>
             </div>

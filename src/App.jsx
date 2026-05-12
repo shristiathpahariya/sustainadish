@@ -24,6 +24,8 @@ import Feed from './components/Feed';
 import SecondScroll from './components/SecondScroll';
 import ShareRecipe from './components/ShareRecipe';
 import CommunityRecipes from './components/CommunityRecipes';
+import AdminRecipeReview from './components/AdminRecipeReview';
+import ModelMetrics from './components/ModelMetrics';
 
 
 function App() {
@@ -49,14 +51,14 @@ function App() {
         />
 
         {/* Routes with BasicLayout (Navbar and Footer hidden) */}
-        <Route
+        {/* <Route
           path="/aboutus"
           element={
             <MainLayout>
               <About />
             </MainLayout>
           }
-        />
+        /> */}
         <Route
           path="/privacy"
           element={
@@ -118,6 +120,22 @@ function App() {
           element={
             <MainLayout>
               <CommunityRecipes />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/admin/review"
+          element={
+            <MainLayout>
+              <AdminRecipeReview />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/admin/metrics"
+          element={
+            <MainLayout>
+              <ModelMetrics />
             </MainLayout>
           }
         />
