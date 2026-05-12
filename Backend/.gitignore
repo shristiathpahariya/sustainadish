@@ -51,3 +51,6 @@ public/static/
 
 # Ignore ml.html if it's auto-generated
 ml.html
+
+# Ignore generated training data exports (dynamic files created during training)
+exports/training-data-*.csv

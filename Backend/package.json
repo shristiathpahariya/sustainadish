@@ -13,11 +13,10 @@
     "seed": "node scripts/run-seeds.js",
     "migrate:recipe": "node scripts/migrate-recipe-schema.js",
     "seed:training-log": "node scripts/seed-training-log.js",
-    "migrate:user-contributions": "node scripts/migrate-user-contributions.js"
-    ,
-    "export:training-data": "node scripts/export-training-data.js"
-    ,
-    "retrain:model": "node scripts/run-retrain.js"
+    "migrate:user-contributions": "node scripts/migrate-user-contributions.js",
+    "export:training-data": "node scripts/export-training-data.js",
+    "retrain:model": "node scripts/run-retrain.js",
+    "build:prepare": "node scripts/build-prepare.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
