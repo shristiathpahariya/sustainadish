@@ -43,6 +43,10 @@ const Profile = () => {
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [selectedSaved, setSelectedSaved] = useState(null);
   const [removingSavedRecipeId, setRemovingSavedRecipeId] = useState(null);
+  const [likedRecipes, setLikedRecipes] = useState([]);
+  const [loadingLiked, setLoadingLiked] = useState(true);
+  const [selectedLiked, setSelectedLiked] = useState(null);
+  const [activeTab, setActiveTab] = useState('saved');
   const postsContainerRef = useRef(null);
 
   // Contributions state
@@ -116,6 +120,29 @@ const Profile = () => {
       }
     };
     fetchSavedRecipes();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchLikedRecipes = async () => {
+      if (!user) {
+        setLikedRecipes([]);
+        setLoadingLiked(false);
+        return;
+      }
+      setLoadingLiked(true);
+      try {
+        const response = await apiClient.get("/recipes/liked");
+        const list = Array.isArray(response.data?.likedRecipes) ? response.data.likedRecipes : [];
+        setLikedRecipes(list);
+      } catch (error) {
+        console.error("Error fetching liked recipes:", error);
+        if (error.response?.status === 401) navigateRef.current("/login");
+        setLikedRecipes([]);
+      } finally {
+        setLoadingLiked(false);
+      }
+    };
+    fetchLikedRecipes();
   }, [user]);
 
   // Fetch user's recipe contributions
@@ -320,6 +347,15 @@ const Profile = () => {
     setSelectedSaved(null);
   };
 
+  const openLikedRecipePopup = (recipe) => {
+    setSelectedLiked(recipe);
+  };
+
+  const closeLikedRecipePopup = (e) => {
+    if (e && e.target !== e.currentTarget) return;
+    setSelectedLiked(null);
+  };
+
   const handlePostClick = (post) => {
     setSelectedPost(post);
     setTimeout(() => {
@@ -406,68 +442,136 @@ const Profile = () => {
         <div className="separator-inner">
           <div className="sep-line" />
           <div className="sep-diamond" />
-          <span className="sep-label">Saved recipes</span>
+          <span className="sep-label">Recipe collections</span>
           <div className="sep-diamond" />
           <div className="sep-line" />
         </div>
       </div>
 
       <div className="posts-section profile-saved-wrap">
-        <p className="postshead">Recipe saves</p>
-        <p className="postshead-sub">From your recommendation searches</p>
-        <div className="saved-recipes-grid">
-          {loadingSaved ? (
-            <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, color: "#888780" }}>
-              Loading saved recipes…
-            </p>
-          ) : savedRecipes.length > 0 ? (
-            savedRecipes.map((row) => {
-              const rec = row.recipe;
-              if (!rec) return null;
-              const rid = rec._id;
-              return (
-                <div
-                  key={row._id}
-                  className="saved-recipe-card"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => openSavedRecipePopup(row)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      openSavedRecipePopup(row);
-                    }
-                  }}
-                >
-                  <button
-                    type="button"
-                    className="saved-recipe-card__remove"
-                    aria-label={`Remove ${rec.title || "recipe"}`}
-                    disabled={removingSavedRecipeId === rid}
-                    onClick={(e) => handleRemoveSavedRecipe(rid, e)}
-                  >
-                    <Trash2 size={16} strokeWidth={2} aria-hidden />
-                  </button>
-                  <div className="saved-recipe-card__title">{rec.title}</div>
-                  {row.savedAt && (
-                    <div className="saved-recipe-card__meta">
-                      Saved{" "}
-                      {new Date(row.savedAt).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          ) : (
-            <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, color: "#888780" }}>
-              No saved recipes yet. Open Recommendations and save a recipe you like.
-            </p>
-          )}
+        
+        {/* Toggle buttons */}
+        <div className="recipe-tabs">
+          <button
+            type="button"
+            className={`recipe-tab ${activeTab === 'saved' ? 'recipe-tab--active' : ''}`}
+            onClick={() => setActiveTab('saved')}
+          >
+            Saved recipes
+          </button>
+          <button
+            type="button"
+            className={`recipe-tab ${activeTab === 'liked' ? 'recipe-tab--active' : ''}`}
+            onClick={() => setActiveTab('liked')}
+          >
+            Liked recipes
+          </button>
         </div>
+
+        {/* Saved recipes content */}
+        {activeTab === 'saved' && (
+          <>
+            <p className="postshead">Recipe saves</p>
+            <p className="postshead-sub">From your recommendation searches</p>
+            <div className="saved-recipes-grid">
+              {loadingSaved ? (
+                <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, color: "#888780" }}>
+                  Loading saved recipes…
+                </p>
+              ) : savedRecipes.length > 0 ? (
+                savedRecipes.map((row) => {
+                  const rec = row.recipe;
+                  if (!rec) return null;
+                  const rid = rec._id;
+                  return (
+                    <div
+                      key={row._id}
+                      className="saved-recipe-card"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openSavedRecipePopup(row)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openSavedRecipePopup(row);
+                        }
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="saved-recipe-card__remove"
+                        aria-label={`Remove ${rec.title || "recipe"}`}
+                        disabled={removingSavedRecipeId === rid}
+                        onClick={(e) => handleRemoveSavedRecipe(rid, e)}
+                      >
+                        <Trash2 size={16} strokeWidth={2} aria-hidden />
+                      </button>
+                      <div className="saved-recipe-card__title">{rec.title}</div>
+                      {row.savedAt && (
+                        <div className="saved-recipe-card__meta">
+                          Saved{" "}
+                          {new Date(row.savedAt).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, color: "#888780" }}>
+                  No saved recipes yet. Open Recommendations and save a recipe you like.
+                </p>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Liked recipes content */}
+        {activeTab === 'liked' && (
+          <>
+            <p className="postshead">Liked recipes</p>
+            <p className="postshead-sub">Recipes from the community you've liked</p>
+            <div className="saved-recipes-grid">
+              {loadingLiked ? (
+                <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, color: "#888780" }}>
+                  Loading liked recipes…
+                </p>
+              ) : likedRecipes.length > 0 ? (
+                likedRecipes.map((recipe) => {
+                  const rid = recipe._id;
+                  return (
+                    <div
+                      key={rid}
+                      className="saved-recipe-card"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openLikedRecipePopup(recipe)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openLikedRecipePopup(recipe);
+                        }
+                      }}
+                    >
+                      <div className="saved-recipe-card__title">{recipe.title}</div>
+                      <div className="saved-recipe-card__meta">
+                        <Heart size={12} strokeWidth={2} fill="currentColor" style={{ color: "#dc2626", marginRight: "4px" }} />
+                        {recipe.likes || 0} likes
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, color: "#888780" }}>
+                  No liked recipes yet. Like recipes from the community to see them here.
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* ── My Contributions ── */}
@@ -665,6 +769,72 @@ const Profile = () => {
                       ? "Removing…"
                       : "Remove from saved"}
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Liked recipe popup ── */}
+      {selectedLiked && (
+        <div className="popup-overlay active" onClick={closeLikedRecipePopup}>
+          <div
+            className="popup-content popup-content--saved-recipe"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="popup-header-bar">
+              <span>Liked recipe</span>
+              <button
+                type="button"
+                className="close-btn"
+                onClick={() => setSelectedLiked(null)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="saved-recipe-popup__scroll">
+              <div className="popup-details">
+                <h3 className="saved-recipe-popup__title">{selectedLiked.title}</h3>
+                <div className="popup-field saved-recipe-popup__block">
+                  <strong>Ingredients</strong>
+                  {splitIngredients(selectedLiked.ingredients).length > 0 ? (
+                    <ul className="saved-recipe-popup__list">
+                      {splitIngredients(selectedLiked.ingredients).map((line, idx) => (
+                        <li key={idx}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={{ fontStyle: "italic", color: "#888780", margin: 0 }}>None listed.</p>
+                  )}
+                </div>
+                <div className="popup-field saved-recipe-popup__block">
+                  <strong>Instructions</strong>
+                  {splitInstructions(selectedLiked.instructions).length > 0 ? (
+                    <ol className="saved-recipe-popup__steps">
+                      {splitInstructions(selectedLiked.instructions).map((step, idx) => (
+                        <li key={idx}>{step}</li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p style={{ fontStyle: "italic", color: "#888780", margin: 0 }}>None listed.</p>
+                  )}
+                </div>
+                <div className="saved-recipe-popup__meta-info">
+                  <div className="saved-recipe-popup__stat">
+                    <Heart size={16} strokeWidth={2} fill="currentColor" style={{ color: "#dc2626", marginRight: "4px" }} />
+                    {selectedLiked.likes || 0} likes
+                  </div>
+                  {selectedLiked.updatedAt && (
+                    <div className="saved-recipe-popup__stat">
+                      Updated {new Date(selectedLiked.updatedAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

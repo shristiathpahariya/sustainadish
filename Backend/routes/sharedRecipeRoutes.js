@@ -6,5 +6,6 @@ const SharedRecipeController = require('../controllers/sharedRecipeController');
 router.post('/recipes/share', authMiddleware, SharedRecipeController.shareRecipe);
 router.post('/recipes/:recipeId/like', authMiddleware, SharedRecipeController.likeRecipe);
 router.get('/recipes/liked-ids', authMiddleware, SharedRecipeController.getLikedRecipeIds);
+router.get('/recipes/liked', authMiddleware, SharedRecipeController.getLikedRecipes);
 
 module.exports = router;

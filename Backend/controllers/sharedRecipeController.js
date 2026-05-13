@@ -257,6 +257,29 @@ class SharedRecipeController {
       return res.status(500).json({ message: 'Could not fetch liked recipes' });
     }
   }
+
+  /**
+   * Returns recipes that the authenticated user has liked with full details.
+   * GET /recipes/liked
+   */
+  static async getLikedRecipes(req, res) {
+    try {
+      const userId = req.user?.id;
+      if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      // Find recipes whose likedBy array contains the current user, sorted by updated at
+      const recipes = await Recipe.find({ likedBy: userId })
+        .sort({ updatedAt: -1 })
+        .lean();
+
+      return res.json({ likedRecipes: recipes });
+    } catch (error) {
+      console.error('get liked recipes error:', error);
+      return res.status(500).json({ message: 'Could not fetch liked recipes' });
+    }
+  }
 }
 
 SharedRecipeController.validateRecipeSharePayload = validateRecipeSharePayload;
