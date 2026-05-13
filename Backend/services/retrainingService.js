@@ -159,7 +159,6 @@ async function runFullRetrain(opts = {}) {
     const pyRun = spawnSync(py, pyArgs, {
       cwd: backendRoot,
       stdio: 'pipe',
-      env: process.env,
       encoding: 'utf8',
     });
 
