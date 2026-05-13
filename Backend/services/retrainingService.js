@@ -154,11 +154,16 @@ async function runFullRetrain(opts = {}) {
     });
 
     console.log(`[RETRAIN] Using Python: ${py}`);
-    console.log(`[RETRAIN] PYTHON env var: ${process.env.PYTHON}`);
+    console.log(`[RETRAIN] PYTHON env var (before override): ${process.env.PYTHON}`);
+
+    // Clear PYTHON env var to use system Python which has all pip-installed packages
+    const cleanEnv = { ...process.env };
+    delete cleanEnv.PYTHON;
 
     const pyRun = spawnSync(py, pyArgs, {
       cwd: backendRoot,
       stdio: 'pipe',
+      env: cleanEnv,
       encoding: 'utf8',
     });
 
