@@ -56,7 +56,7 @@ PREPARATION_WORDS = {
     'grated', 'peeled', 'cored', 'seeded', 'boned', 'skinless', 'boneless',
     'fresh', 'dried', 'frozen', 'canned', 'cooked', 'uncooked', 'raw', 'roasted',
     'finely', 'roughly', 'lightly', 'heavily', 'thinly', 'thickly', 'coarsely',
-    'warmed', 'lined', 'bought', 'store', 'pickled', 'cured'
+    'warmed', 'lined', 'bought', 'store', 'pickled', 'cured', 'kosher', 'homemade'
 }
 
 NON_INGREDIENT_WORDS = {

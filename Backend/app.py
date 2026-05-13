@@ -140,7 +140,7 @@ PREPARATION_WORDS = {
     'pickled', 'cured', 'smoked', 'marinated', 'seasoned', 'flavored', 'salted',
     'unsalted', 'sweetened', 'unsweetened', 'spiced', 'stuffed', 'filled',
     'topped', 'garnished', 'glazed', 'coated', 'dusted', 'rolled', 'dipped', 'coated',
-    'finely', 'roughly', 'lightly', 'heavily', 'thinly', 'thickly', 'coarsely'
+    'finely', 'roughly', 'lightly', 'heavily', 'thinly', 'thickly', 'coarsely', 'kosher', 'homemade'
 }
 
 NON_INGREDIENT_WORDS = {
