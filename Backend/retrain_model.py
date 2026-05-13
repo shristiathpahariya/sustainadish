@@ -2,17 +2,76 @@ import argparse
 import json
 import os
 import pickle
+import re
 import shutil
 import string
 from datetime import datetime
 
+import nltk
 import numpy as np
 import pandas as pd
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+# Download NLTK data if needed
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    try:
+        nltk.download('punkt')
+    except:
+        pass
+
+# For NLTK 3.8+ (Python 3.13), download punkt_tab instead
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    try:
+        nltk.download('punkt_tab')
+    except:
+        pass
+
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
+
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+
 
 ARTIFACTS = ["combined_embeddings.pkl", "sampled_data.pkl", "tfidf_vectorizer.pkl"]
+
+# Ingredient extraction word lists (same as app.py)
+MEASUREMENT_UNITS = {
+    'teaspoon', 'tsp', 'tablespoon', 'tbsp', 'cup', 'c', 'quart', 'qt',
+    'liter', 'l', 'milliliter', 'ml', 'gallon', 'g', 'pint', 'pt', 'fluid', 'fl',
+    'ounce', 'ounces', 'oz', 'pound', 'lb', 'pounds', 'gram', 'grams', 'g', 'kilogram', 'kg', 'milligram', 'mg',
+    'piece', 'pieces', 'slice', 'slices', 'clove', 'cloves', 'head', 'heads',
+    'bunch', 'bunches', 'sprig', 'sprigs', 'leaf', 'leaves', 'fillet', 'fillets', 'serving', 'servings'
+}
+
+PREPARATION_WORDS = {
+    'chopped', 'sliced', 'diced', 'minced', 'crushed', 'shredded', 'ground',
+    'grated', 'peeled', 'cored', 'seeded', 'boned', 'skinless', 'boneless',
+    'fresh', 'dried', 'frozen', 'canned', 'cooked', 'uncooked', 'raw', 'roasted',
+    'finely', 'roughly', 'lightly', 'heavily', 'thinly', 'thickly', 'coarsely',
+    'warmed', 'lined', 'bought', 'store', 'pickled', 'cured'
+}
+
+NON_INGREDIENT_WORDS = {
+    'large', 'small', 'medium', 'whole', 'half', 'quarter', 'third', 'piece',
+    'about', 'with', 'without', 'or', 'and', 'for', 'to', 'use', 'using', 'like',
+    'more', 'less', 'as', 'if', 'when', 'then', 'well', 'good', 'best', 'better',
+    'optional', 'plus', 'minus', 'add', 'added', 'into', 'divide', 'divided',
+    'red', 'black', 'green', 'yellow', 'purple', 'orange', 'pink', 'brown', 'gray', 'white',
+    'powder', 'cube', 'cubes', 'stick', 'sticks', 'dip', 'dips', 'sauce', 'sauces',
+    'broth', 'stock', 'liquid', 'mixture', 'batter', 'dough', 'past', 'puree',
+    'soup', 'salad', 'dish', 'meal', 'course', 'bell', 'hot', 'cold', 'warm',
+    'make', 'makes', 'made', 'prepare', 'prepared', 'recipe', 'recipes',
+}
+
+ENGLISH_STOP_WORDS = set(stopwords.words('english'))
 
 
 # Keep this name at module top-level so the pickled vectorizer references __main__.recipe_tokenizer.
@@ -34,6 +93,69 @@ def recipe_tokenizer(sentence: str):
             listofstemmed_words.append(w)
 
     return listofstemmed_words
+
+def ingredient_tokenizer(text):
+    """
+    Enhanced tokenizer for extracting real ingredient words.
+    Filters out measurements, numbers, stopwords, and non-ingredient words.
+    """
+    if not isinstance(text, str):
+        return []
+
+    text = text.lower()
+
+    # Remove punctuation
+    for punctuation_mark in string.punctuation:
+        text = text.replace(punctuation_mark, ' ')
+
+    # Replace numbers and fractions with placeholder
+    text = re.sub(r'\d+[\d\s/-]*', ' ', text)
+    # Remove remaining numbers
+    text = re.sub(r'\d+', ' ', text)
+
+    # Tokenize
+    tokens = word_tokenize(text)
+
+    # Filter out non-ingredient words
+    ingredient_words = []
+    for token in tokens:
+        token = token.strip()
+
+        # Skip empty tokens
+        if not token:
+            continue
+
+        # Skip if it's a measurement unit
+        if token in MEASUREMENT_UNITS or token.lower() in MEASUREMENT_UNITS:
+            continue
+
+        # Skip if it's a preparation word
+        if token in PREPARATION_WORDS or token.lower() in PREPARATION_WORDS:
+            continue
+
+        # Skip if it's a non-ingredient word
+        if token in NON_INGREDIENT_WORDS or token.lower() in NON_INGREDIENT_WORDS:
+            continue
+
+        # Skip if it's a stopword
+        if token in ENGLISH_STOP_WORDS or token.lower() in ENGLISH_STOP_WORDS:
+            continue
+
+        # Skip single letters
+        if len(token) == 1:
+            continue
+
+        # Skip if it's too short (less than 2 chars)
+        if len(token) < 2:
+            continue
+
+        # Skip if all characters are digits (safety check)
+        if token.isdigit():
+            continue
+
+        ingredient_words.append(token)
+
+    return ingredient_words
 
 
 def _ingredients_to_string(v):

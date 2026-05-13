@@ -11,6 +11,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 import string
 import nltk
 from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.tag import pos_tag
 from spellchecker import SpellChecker
 from google import genai
 from google.genai import types
@@ -27,6 +29,18 @@ load_dotenv()
 # Download necessary NLTK data
 nltk.download('averaged_perceptron_tagger')
 nltk.download('stopwords')
+# Download punkt for older NLTK versions (fallback)
+try:
+    nltk.download('punkt')
+except:
+    pass
+# Download punkt_tab for NLTK 3.8+ (Python 3.13)
+try:
+    nltk.download('punkt_tab')
+except:
+    pass
+nltk.download('maxent_ne_chunker')
+nltk.download('words')
 ENGLISH_STOP_WORDS = stopwords.words('english')
 stemmer = nltk.stem.PorterStemmer()
 
@@ -94,6 +108,67 @@ combined_embeddings = None
 vectorizer = None
 sampled_data = None
 all_ingredients_set = set()  # Cache for ingredient suggestions
+ingredient_vocabulary = set()  # Cache of known ingredient words for spell checking
+models_loaded = False  # Flag to track if models are loaded successfully
+
+# Ingredient extraction word lists
+MEASUREMENT_UNITS = {
+    # Volume measurements
+    'teaspoon', 'tsp', 'tsp', 'tablespoon', 'tablespoons', 'tbsp', 'tbsp', 'cup', 'cups', 'c', 'quart', 'qt',
+    'liter', 'l', 'milliliter', 'ml', 'gallon', 'g', 'pint', 'pt', 'fluid', 'fl',
+    # Weight measurements
+    'ounce', 'ounces', 'oz', 'pound', 'lb', 'pounds', 'gram', 'grams', 'g', 'kilogram', 'kg', 'milligram', 'mg',
+    # Count measurements
+    'piece', 'pieces', 'slice', 'slices', 'clove', 'cloves', 'head', 'heads',
+    'bunch', 'bunches', 'sprig', 'sprigs', 'leaf', 'leaves', 'fillet', 'fillets',
+    'breast', 'breasts', 'thigh', 'thighs', 'leg', 'legs', 'wing', 'wings', 'serving', 'servings'
+    # Other measurements
+    'dash', 'pinch', 'handful', 'drizzle', 'splash', 'squeeze', 'grate', 'grated',
+    'chopped', 'sliced', 'diced', 'minced', 'crushed', 'shredded', 'ground',
+    'finely', 'roughly', 'lightly', 'heavily', 'thinly', 'thickly', 'coarsely',
+}
+
+PREPARATION_WORDS = {
+    'chopped', 'sliced', 'diced', 'minced', 'crushed', 'shredded', 'ground', 'crumbled',
+    'grated', 'peeled', 'cored', 'seeded', 'boned', 'skinless', 'boneless',
+    'fresh', 'dried', 'frozen', 'canned', 'cooked', 'uncooked', 'raw', 'roasted', 'baking',
+    'baked', 'fried', 'boiled', 'steamed', 'grilled', 'broiled', 'poached',
+    'whole', 'halved', 'quartered', 'cubed', 'julienne', 'smashed', 'mashed',
+    'pureed', 'whisked', 'beaten', 'stirred', 'mixed', 'combined', 'blended',
+    'strained', 'drained', 'rinsed', 'washed', 'dried', 'cooled', 'warmed', 'lined',
+    'bought', 'store', 'package', 'jar', 'bottle', 'can', 'bag', 'tube', 'bar',
+    'pickled', 'cured', 'smoked', 'marinated', 'seasoned', 'flavored', 'salted',
+    'unsalted', 'sweetened', 'unsweetened', 'spiced', 'stuffed', 'filled',
+    'topped', 'garnished', 'glazed', 'coated', 'dusted', 'rolled', 'dipped', 'coated',
+    'finely', 'roughly', 'lightly', 'heavily', 'thinly', 'thickly', 'coarsely'
+}
+
+NON_INGREDIENT_WORDS = {
+    # Sizes and quantities
+    'large', 'small', 'medium', 'whopping', 'generous', 'heaping', 'scant',
+    'whole', 'half', 'halves', 'quarter', 'third', 'piece', 'pieces', 'part', 'parts',
+    # Actions
+    'add', 'added', 'adding', 'into', 'about', 'with', 'without', 'or', 'and', 'for',
+    'to', 'use', 'using', 'like', 'more', 'less', 'as', 'if', 'when', 'then', 'also',
+    # Quality words
+    'well', 'good', 'best', 'better', 'fine', 'nice', 'great', 'excellent', 'perfect',
+    # Modifiers
+    'freshly', 'extra', 'optional', 'plus', 'minus', 'divide', 'divided',
+    # Colors (these should be removed, they're not ingredients by themselves)
+    'red', 'black', 'green', 'yellow', 'purple', 'orange', 'pink', 'brown', 'gray', 'white',
+    'dark', 'light', 'colored', 'colour',
+    # Cooking terms
+    'baked', 'boiled', 'fried', 'grilled', 'roasted', 'steamed', 'cooked',
+    # Non-ingredient descriptors
+    'powder', 'cube', 'cubes', 'stick', 'sticks', 'strip', 'strips', 'piece', 'pieces',
+    'dip', 'sauce', 'broth', 'stock', 'liquid', 'mixture', 'batter', 'dough',
+    'past', 'puree', 'soup', 'salad', 'dish', 'meal', 'course',
+    # Cuisine types (these are modifiers, not ingredients by themselves)
+    'italian', 'mexican', 'chinese', 'indian', 'thai', 'japanese', 'french', 'american',
+    # Other
+    'bell', 'hot', 'cold', 'warm', 'cool', 'room', 'temperature', 'heat',
+    'make', 'makes', 'made', 'prepare', 'prepared', 'recipe', 'recipes',
+}
 
 # Must be defined before load_ml_models(): pickled TfidfVectorizer references __main__.recipe_tokenizer
 # This tokenizer MUST match the one used in retrain_model.py
@@ -118,6 +193,69 @@ def recipe_tokenizer(sentence):
             listofstemmed_words.append(w)
 
     return listofstemmed_words
+
+def ingredient_tokenizer(text):
+    """
+    Enhanced tokenizer for extracting real ingredient words.
+    Filters out measurements, numbers, stopwords, and non-ingredient words.
+    """
+    if not isinstance(text, str):
+        return []
+
+    text = text.lower()
+
+    # Remove punctuation
+    for punctuation_mark in string.punctuation:
+        text = text.replace(punctuation_mark, ' ')
+
+    # Replace numbers and fractions with placeholder
+    text = re.sub(r'\d+[\d\s/-]*', ' ', text)
+    # Remove remaining numbers
+    text = re.sub(r'\d+', ' ', text)
+
+    # Tokenize
+    tokens = word_tokenize(text)
+
+    # Filter out non-ingredient words
+    ingredient_words = []
+    for token in tokens:
+        token = token.strip()
+
+        # Skip empty tokens
+        if not token:
+            continue
+
+        # Skip if it's a measurement unit
+        if token in MEASUREMENT_UNITS or token.lower() in MEASUREMENT_UNITS:
+            continue
+
+        # Skip if it's a preparation word
+        if token in PREPARATION_WORDS or token.lower() in PREPARATION_WORDS:
+            continue
+
+        # Skip if it's a non-ingredient word
+        if token in NON_INGREDIENT_WORDS or token.lower() in NON_INGREDIENT_WORDS:
+            continue
+
+        # Skip if it's a stopword
+        if token in ENGLISH_STOP_WORDS or token.lower() in ENGLISH_STOP_WORDS:
+            continue
+
+        # Skip single letters (except specific common food abbreviations)
+        if len(token) == 1 and token not in ['c', 'g', 'k', 'l', 'm']:
+            continue
+
+        # Skip if it's too short (less than 2 chars)
+        if len(token) < 2:
+            continue
+
+        # Skip if all characters are digits (safety check)
+        if token.isdigit():
+            continue
+
+        ingredient_words.append(token)
+
+    return ingredient_words
 
 def extract_ingredient_name(ingredient_str):
     """Extract just the ingredient name, removing quantities, measurements, and extra info."""
@@ -155,7 +293,7 @@ def extract_ingredient_name(ingredient_str):
 
 def load_ml_models():
     """Load all ML models and data at startup"""
-    global combined_embeddings, vectorizer, sampled_data, all_ingredients_set
+    global combined_embeddings, vectorizer, sampled_data, all_ingredients_set, ingredient_vocabulary, models_loaded
     try:
         print("Loading ML models...")
         with open('input/combined_embeddings.pkl', 'rb') as f:
@@ -185,26 +323,33 @@ def load_ml_models():
             print("[ERROR] TF-IDF vectorizer is not fitted!")
             return False
 
-        # Extract all unique ingredients for autocomplete (clean names only)
-        print("Extracting ingredients for autocomplete...")
-        for ingredients_str in sampled_data['Ingredients']:
-            if isinstance(ingredients_str, str):
-                for ing in ingredients_str.split(','):
-                    clean_name = extract_ingredient_name(ing).lower()
-                    if clean_name and len(clean_name) >= 3:  # Only keep meaningful names
-                        all_ingredients_set.add(clean_name)
+        # Build ingredient vocabulary cache from training data
+        print("Building ingredient vocabulary cache...")
+        ingredient_vocabulary = set()
+        if sampled_data is not None and 'Ingredients' in sampled_data.columns:
+            for ingredients_str in sampled_data['Ingredients']:
+                if isinstance(ingredients_str, str):
+                    ingredient_words = ingredient_tokenizer(ingredients_str)
+                    ingredient_vocabulary.update(ingredient_words)
+        print(f"[OK] Built vocabulary with {len(ingredient_vocabulary)} unique ingredient words")
+
+        # Extract all unique ingredients for autocomplete (use ingredient vocabulary)
+        all_ingredients_set = ingredient_vocabulary.copy()
 
         print(f"Loaded {len(all_ingredients_set)} unique ingredients for autocomplete")
         print(f"Loaded {len(sampled_data)} recipes from dataset")
         print("ML models loaded successfully!")
+        models_loaded = True
         return True
     except FileNotFoundError as e:
         print(f"Error loading ML models: {e}")
+        models_loaded = False
         return False
     except Exception as e:
         print(f"Unexpected error loading ML models: {e}")
         import traceback
         traceback.print_exc()
+        models_loaded = False
         return False
 
 # Load models at startup
@@ -270,6 +415,7 @@ def scheduled_retrain():
             print(run.stdout)
 
         # Reload models so this process uses the new artifacts.
+        global models_loaded
         models_loaded = load_ml_models()
         if models_loaded:
             _log("ML models reloaded after retrain")
@@ -287,12 +433,12 @@ def start_retrain_scheduler():
         return
 
     try:
-        interval_hours = float(os.environ.get("RETRAIN_INTERVAL_HOURS", "6"))
+        interval_hours = float(os.environ.get("RETRAIN_INTERVAL_HOURS", "2"))
     except Exception:
-        interval_hours = 6.0
+        interval_hours = 2.0
 
     if interval_hours <= 0:
-        interval_hours = 6.0
+        interval_hours = 2.0
 
     interval_seconds = int(interval_hours * 60 * 60)
 
@@ -454,19 +600,36 @@ def find_similar_recipes(user_input, num_similar=6):
 
 
 def is_valid_input(user_input):
-    tokenized_input = recipe_tokenizer(user_input)
-    
+    """Validate input by checking if tokens exist in ingredient vocabulary"""
+    global ingredient_vocabulary
+
+    # Use ingredient tokenizer to extract real ingredient words
+    tokenized_input = ingredient_tokenizer(user_input)
+
     # Check if the tokenized input is empty
     if not tokenized_input:
         return False
 
-    # Spell-check validation
-    misspelled = spell.unknown(tokenized_input)
-    
-    # If more than half of the words are misspelled, consider it invalid input
-    if len(misspelled) > len(tokenized_input) * 0.5:
-        return False
-    return True
+    # If vocabulary is not yet built, accept all input (fallback)
+    if not ingredient_vocabulary:
+        return True
+
+    # Check if ingredients exist in our training vocabulary
+    # Allow partial matches (ingredients might be subwords of each other)
+    valid_words = 0
+    for token in tokenized_input:
+        # Check exact match or if token is substring of any vocabulary word
+        if token in ingredient_vocabulary:
+            valid_words += 1
+        else:
+            # Check for partial matches (e.g., "mango" might match "mangos")
+            for vocab_word in ingredient_vocabulary:
+                if token in vocab_word or vocab_word in token:
+                    valid_words += 1
+                    break
+
+    # If at least one ingredient is valid, accept the input
+    return valid_words > 0
 
 
 @app.route('/')
@@ -488,9 +651,17 @@ def suggest_ingredients():
     if not query or len(query) < 2:
         return jsonify({"suggestions": []})
 
+    # Use ingredient vocabulary for suggestions (real ingredients only)
+    global ingredient_vocabulary
+
     # Find ingredients that start with or contain the query
+    suggestions = []
+    for ing in ingredient_vocabulary:
+        if query in ing and len(ing) >= 3:  # Only suggest meaningful ingredient words
+            suggestions.append(ing)
+
     suggestions = sorted(
-        [ing for ing in all_ingredients_set if query in ing],
+        suggestions,
         key=lambda x: (not x.startswith(query), x)  # Prioritize starts-with matches
     )[:limit]
 
@@ -1077,6 +1248,54 @@ def modify_recipe():
         print(traceback.format_exc())
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
+
+
+@app.route('/word-frequencies', methods=['GET'])
+def get_word_frequencies():
+    """Get top ingredient words from training data for visualization"""
+    global models_loaded
+
+    # Check if models are loaded, if not try to load them
+    if not models_loaded:
+        print("[WARN] Models not loaded, attempting to load...")
+        if not load_ml_models():
+            return jsonify({"error": "ML models not loaded and could not be loaded"}), 500
+
+    try:
+        top_n = request.args.get('top', 50, type=int)
+        top_n = min(max(top_n, 10), 200)  # Clamp between 10 and 200
+
+        # Extract all words from the sampled_data
+        all_words = []
+        if sampled_data is not None and 'Ingredients' in sampled_data.columns:
+            for ingredients_str in sampled_data['Ingredients']:
+                if isinstance(ingredients_str, str):
+                    # Use enhanced ingredient tokenizer that filters out measurements/stopwords
+                    tokens = ingredient_tokenizer(ingredients_str)
+                    all_words.extend(tokens)
+
+        # Count word frequencies
+        from collections import Counter
+        word_counts = Counter(all_words)
+
+        # Get top words
+        top_words = word_counts.most_common(top_n)
+
+        # Format for visualization
+        word_frequency_data = [
+            {"word": word, "count": count}
+            for word, count in top_words
+        ]
+
+        return jsonify({
+            "words": word_frequency_data,
+            "total_unique_words": len(word_counts),
+            "total_word_occurrences": sum(word_counts.values())
+        }), 200
+
+    except Exception as e:
+        print(f"Error getting word frequencies: {str(e)}")
+        return jsonify({"error": f"Failed to get word frequencies: {str(e)}"}), 500
 
 
 # Run the Flask app

@@ -70,6 +70,33 @@ const trainingLogSchema = new mongoose.Schema(
       ref: 'User',
       default: null,
     },
+    progress: {
+      currentStep: {
+        type: String,
+        enum: ['extracting_recipes', 'exporting_csv', 'training_model', 'saving_artifacts', 'updating_status', 'completed'],
+        default: 'extracting_recipes',
+      },
+      stepProgress: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 0,
+      },
+      overallProgress: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 0,
+      },
+      stepsCompleted: {
+        type: [String],
+        default: [],
+      },
+      currentStepStartedAt: {
+        type: Date,
+        default: null,
+      },
+    },
   },
   { timestamps: true }
 );

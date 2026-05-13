@@ -178,7 +178,7 @@ function App() {
               <Feed />
             </MainLayout>
           }
-        /> 
+        />
       </Routes>
     </Router>
   );

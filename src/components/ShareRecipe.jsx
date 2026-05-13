@@ -346,11 +346,11 @@ const ShareRecipe = () => {
           <div className="share-recipe__success-message">
             <p><strong>What happens next?</strong></p>
             <ul>
-              <li>📋 Your recipe is under review by our community team</li>
-              <li>✅ Once approved, it will be available to all users</li>
-              <li>🤖 It will be used to improve our recommendation engine</li>
-              <li>👍 If approved, you'll get credit as the recipe author</li>
-              <li>📊 You can track all your contributions in your profile</li>
+              <li>Your recipe is under review by our community team</li>
+              <li>Once approved, it will be available to all users</li>
+              <li>It will be used to improve our recommendation engine</li>
+              <li>If approved, you'll get credit as the recipe author</li>
+              <li>You can track all your contributions in your profile</li>
             </ul>
           </div>
           <div className="share-recipe__success-actions">
@@ -590,11 +590,11 @@ const ShareRecipe = () => {
             <div className="share-recipe__info-item">
               <h4>After Submission</h4>
               <ul>
-                <li>📋 Your recipe goes through community review</li>
-                <li>✅ Approved recipes are visible to everyone</li>
-                <li>🤖 Help improve recommendations for all users</li>
-                <li>📊 Track your contributions in your profile</li>
-                <li>👍 Get recognition for quality recipes</li>
+                <li>Your recipe goes through community review</li>
+                <li>Approved recipes are visible to everyone</li>
+                <li>Help improve recommendations for all users</li>
+                <li>Track your contributions in your profile</li>
+                <li>Get recognition for quality recipes</li>
               </ul>
             </div>
           </div>

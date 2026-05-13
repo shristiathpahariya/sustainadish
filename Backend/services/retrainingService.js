@@ -86,13 +86,36 @@ async function runFullRetrain(opts = {}) {
         activate,
         maxFeatures,
       },
+      progress: {
+        currentStep: 'extracting_recipes',
+        overallProgress: 5,
+        currentStepStartedAt: new Date(),
+      },
     });
 
     // First, extract recipes to get their IDs (needed for trainingStatus update)
     console.log('Extracting approved recipes...');
+    await TrainingLog.findByIdAndUpdate(logDoc._id, {
+      $set: {
+        'progress.currentStep': 'extracting_recipes',
+        'progress.progressStep': 20,
+        'progress.currentStepStartedAt': new Date(),
+      },
+    });
     const { recipes: approvedRecipes, stats: recipeStats } = await extractApprovedRecipes({ limit: opts.limit });
     const recipeIds = approvedRecipes.map(r => r._id);
     console.log(`Found ${recipeIds.length} recipes for training`);
+
+    // Update progress after extraction
+    await TrainingLog.findByIdAndUpdate(logDoc._id, {
+      $set: {
+        'progress.currentStep': 'exporting_csv',
+        'progress.stepProgress': 40,
+        'progress.overallProgress': 20,
+        'progress.stepsCompleted': ['extracting_recipes'],
+        'progress.currentStepStartedAt': new Date(),
+      },
+    });
 
     // Then export to CSV for training
     console.log('Exporting recipes to CSV...');
@@ -119,6 +142,20 @@ async function runFullRetrain(opts = {}) {
       pyArgs.push('--limit', String(Math.floor(opts.limit)));
     }
 
+    // Update progress before training
+    await TrainingLog.findByIdAndUpdate(logDoc._id, {
+      $set: {
+        'progress.currentStep': 'training_model',
+        'progress.stepProgress': 60,
+        'progress.overallProgress': 40,
+        'progress.stepsCompleted': ['extracting_recipes', 'exporting_csv'],
+        'progress.currentStepStartedAt': new Date(),
+      },
+    });
+
+    console.log(`[RETRAIN] Using Python: ${py}`);
+    console.log(`[RETRAIN] PYTHON env var: ${process.env.PYTHON}`);
+
     const pyRun = spawnSync(py, pyArgs, {
       cwd: backendRoot,
       stdio: 'pipe',
@@ -133,6 +170,17 @@ async function runFullRetrain(opts = {}) {
         `Python trainer failed (exit ${pyRun.status}).\n\nSTDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`
       );
     }
+
+    // Update progress after training completes
+    await TrainingLog.findByIdAndUpdate(logDoc._id, {
+      $set: {
+        'progress.currentStep': 'saving_artifacts',
+        'progress.stepProgress': 80,
+        'progress.overallProgress': 70,
+        'progress.stepsCompleted': ['extracting_recipes', 'exporting_csv', 'training_model'],
+        'progress.currentStepStartedAt': new Date(),
+      },
+    });
 
     if (activate) {
       modelVersionService.setActiveVersion(version, modelId);
@@ -153,6 +201,12 @@ async function runFullRetrain(opts = {}) {
           finishedAt,
           durationMs,
           sampleCount: exportResult.stats.total,
+          progress: {
+            currentStep: 'completed',
+            stepProgress: 100,
+            overallProgress: 100,
+            stepsCompleted: ['extracting_recipes', 'exporting_csv', 'training_model', 'saving_artifacts', 'updating_status'],
+          },
           metrics: {
             ...((logDoc.metrics && typeof logDoc.metrics === 'object') ? logDoc.metrics : {}),
             extractionStats: exportResult.stats,
@@ -168,6 +222,15 @@ async function runFullRetrain(opts = {}) {
 
     // Update trainingStatus for all recipes included in this training run
     console.log(`Updating trainingStatus for ${recipeIds.length} recipes...`);
+    await TrainingLog.findByIdAndUpdate(logDoc._id, {
+      $set: {
+        'progress.currentStep': 'updating_status',
+        'progress.stepProgress': 95,
+        'progress.overallProgress': 90,
+        'progress.stepsCompleted': ['extracting_recipes', 'exporting_csv', 'training_model', 'saving_artifacts'],
+        'progress.currentStepStartedAt': new Date(),
+      },
+    });
     try {
       const updateResult = await Recipe.updateMany(
         { _id: { $in: recipeIds } },

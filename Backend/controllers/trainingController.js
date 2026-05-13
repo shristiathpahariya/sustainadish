@@ -42,6 +42,7 @@ async function getTrainingStatus(req, res) {
         sampleCount: latestTraining.sampleCount,
         errorMessage: latestTraining.errorMessage,
         notes: latestTraining.notes,
+        progress: latestTraining.progress || null,
       },
       currentActive: active,
       isTrainingInProgress: latestTraining.status === 'running',

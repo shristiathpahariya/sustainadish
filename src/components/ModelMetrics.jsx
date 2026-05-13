@@ -21,8 +21,9 @@ import {
   XCircle,
   AlertCircle,
   Play,
+  Download,
 } from 'lucide-react';
-import { apiClient } from '../config';
+import { apiClient, mlApiUrl } from '../config';
 import './ModelMetrics.css';
 
 /**
@@ -39,6 +40,7 @@ import './ModelMetrics.css';
 const ModelMetrics = () => {
   const [metrics, setMetrics] = useState(null);
   const [quickStats, setQuickStats] = useState(null);
+  const [wordFrequencies, setWordFrequencies] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retraining, setRetraining] = useState(false);
@@ -67,6 +69,28 @@ const ModelMetrics = () => {
       setLoading(false);
     }
   };
+
+  const fetchWordFrequencies = async () => {
+    try {
+      const response = await fetch(`${mlApiUrl}/word-frequencies?top=30`);
+      if (response.ok) {
+        const data = await response.json();
+        setWordFrequencies(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch word frequencies:', err);
+    }
+  };
+
+  // Fetch metrics on mount
+  useEffect(() => {
+    fetchMetrics();
+  }, []);
+
+  // Fetch word frequencies on mount
+  useEffect(() => {
+    fetchWordFrequencies();
+  }, []);
 
   const handleManualRetrain = async () => {
     try {
@@ -230,26 +254,6 @@ const ModelMetrics = () => {
           <span>{retrainError}</span>
         </div>
       )}
-
-      {/* Last Training Info */}
-      <div className="metrics-info-bar">
-        <div className="metrics-info-item">
-          <Calendar size={18} />
-          <span className="metrics-info-label">Last Training:</span>
-          <span className="metrics-info-value">
-            {lastTraining ? formatDate(lastTraining.startedAt) : 'No training data'}
-          </span>
-        </div>
-        {lastTraining && (
-          <div className="metrics-info-item">
-            <Brain size={18} />
-            <span className="metrics-info-label">Version:</span>
-            <span className="metrics-info-value">
-              {lastTraining.version} ({lastTraining.status})
-            </span>
-          </div>
-        )}
-      </div>
 
       {/* Stats Cards */}
       <div className="metrics-grid">
@@ -420,6 +424,61 @@ const ModelMetrics = () => {
             ) : (
               <div className="metrics-chart-empty">
                 <p>No contribution data available</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Word Frequency Chart */}
+        <div className="metrics-chart-card">
+          <div className="metrics-chart-header">
+            <h2 className="metrics-chart-title">Top Ingredient Words</h2>
+            <span className="metrics-chart-subtitle">
+              Most common ingredients in training data
+              {wordFrequencies && ` (${wordFrequencies.total_unique_words} unique words)`}
+            </span>
+            <button
+              onClick={fetchWordFrequencies}
+              className="metrics-btn-small"
+              title="Refresh word frequencies"
+            >
+              <RefreshCw size={14} />
+            </button>
+          </div>
+          <div className="metrics-chart-content">
+            {wordFrequencies?.words && wordFrequencies.words.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={wordFrequencies.words} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 12 }}
+                    label={{ value: 'Frequency', position: 'insideBottom', offset: -5 }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="word"
+                    width={100}
+                    tick={{ fontSize: 11, width: 90 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value) => [`Count: ${value}`, 'Frequency']}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill="#3b82f6"
+                    radius={[0, 4, 4, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="metrics-chart-empty">
+                <p>No word frequency data available</p>
               </div>
             )}
           </div>
