@@ -18,6 +18,10 @@ function getPythonCmd() {
     process.env.POETRY_HOME || '/opt/render/project/src',
     '.venv', 'bin', 'python'
   );
+
+  console.log(`[RETRAIN] venvPython path: ${venvPython}`);
+  console.log(`[RETRAIN] venvPython exists: ${fs.existsSync(venvPython)}`);
+
   if (fs.existsSync(venvPython)) return venvPython;
 
   // Fallback to explicit env var
@@ -165,6 +169,20 @@ async function runFullRetrain(opts = {}) {
 
     console.log(`[RETRAIN] Using Python: ${py}`);
     console.log(`[RETRAIN] PYTHON env var (before override): ${process.env.PYTHON}`);
+
+    console.log(`[RETRAIN] Using Python: ${py}`);
+
+// Diagnostic: show which python and what's installed
+const diagRun = spawnSync(py, ['-c', 'import sys; print(sys.executable); print(sys.path)'], {
+  stdio: 'pipe', encoding: 'utf8', env: process.env
+});
+console.log(`[RETRAIN] sys.executable: ${diagRun.stdout}`);
+console.log(`[RETRAIN] diag stderr: ${diagRun.stderr}`);
+
+const pipList = spawnSync(py, ['-m', 'pip', 'list'], {
+  stdio: 'pipe', encoding: 'utf8', env: process.env
+});
+console.log(`[RETRAIN] pip list: ${pipList.stdout}`);
 
     const pyRun = spawnSync(py, pyArgs, {
       cwd: backendRoot,
