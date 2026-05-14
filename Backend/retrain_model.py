@@ -5,6 +5,7 @@ import pickle
 import re
 import shutil
 import string
+import nltk
 from datetime import datetime
 import numpy as np
 import pandas as pd

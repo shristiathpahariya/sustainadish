@@ -13,9 +13,19 @@ function nowIsoCompact() {
 }
 
 function getPythonCmd() {
-  return process.env.PYTHON && String(process.env.PYTHON).trim()
-    ? String(process.env.PYTHON).trim()
-    : 'python';
+  // Render/Poetry puts the venv python here
+  const venvPython = path.join(
+    process.env.POETRY_HOME || '/opt/render/project/src',
+    '.venv', 'bin', 'python'
+  );
+  if (fs.existsSync(venvPython)) return venvPython;
+
+  // Fallback to explicit env var
+  if (process.env.PYTHON && String(process.env.PYTHON).trim()) {
+    return String(process.env.PYTHON).trim();
+  }
+
+  return 'python3';
 }
 
 function resolveNextVersion(modelId, bump) {
@@ -156,14 +166,10 @@ async function runFullRetrain(opts = {}) {
     console.log(`[RETRAIN] Using Python: ${py}`);
     console.log(`[RETRAIN] PYTHON env var (before override): ${process.env.PYTHON}`);
 
-    // Clear PYTHON env var to use system Python which has all pip-installed packages
-    const cleanEnv = { ...process.env };
-    delete cleanEnv.PYTHON;
-
     const pyRun = spawnSync(py, pyArgs, {
       cwd: backendRoot,
       stdio: 'pipe',
-      env: cleanEnv,
+      env: process.env,
       encoding: 'utf8',
     });
 
