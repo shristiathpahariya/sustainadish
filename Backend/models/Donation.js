@@ -59,13 +59,25 @@ const donationSchema = new mongoose.Schema({
     type: String,
     enum: ['available', 'claimed', 'expired'],
     default: 'available'
-  }
+  },
+  // ── ADD: geolocation fields ──
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: { type: [Number], default: [0, 0] }
+  },
+  displayCoordinates: { type: [Number], default: [0, 0] },
+  city: { type: String, default: '' }
 }, {
   timestamps: true,
   // Never send image bytes in JSON — clients use GET /donations/:id/image
   toJSON: {
     transform(_doc, ret) {
       delete ret.pictures;
+      delete ret.location;
       return ret;
     },
   },
@@ -75,6 +87,9 @@ const donationSchema = new mongoose.Schema({
 donationSchema.index({ email: 1 });
 donationSchema.index({ expiryDate: -1 });
 donationSchema.index({ status: 1 });
+
+// ── ADD: geospatial index ──
+donationSchema.index({ location: '2dsphere' });
 
 const Donation = mongoose.model('Donation', donationSchema);
 

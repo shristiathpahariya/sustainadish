@@ -47,6 +47,47 @@ class DonationController {
         });
       }
 
+      // ── ADD: location handling ──
+      let locationFields = {};
+      if (req.body.lat !== undefined && req.body.lng !== undefined) {
+        const lat = parseFloat(req.body.lat);
+        const lng = parseFloat(req.body.lng);
+
+        if (isNaN(lat) || lat < -90 || lat > 90 || isNaN(lng) || lng < -180 || lng > 180) {
+          return res.status(400).json({ message: 'Invalid coordinates provided.' });
+        }
+
+        // Consent check — only enforced when coordinates are provided
+        if (req.user && !req.user.locationConsentAt) {
+          const user = await User.findById(req.user.id).select('locationConsentAt');
+          if (!user?.locationConsentAt) {
+            return res.status(403).json({ message: 'Location consent required before sharing coordinates.' });
+          }
+        }
+
+        const fuzz = () => (Math.random() * 0.006) - 0.003;
+        locationFields = {
+          location: { type: 'Point', coordinates: [lng, lat] },
+          displayCoordinates: [lng + fuzz(), lat + fuzz()],
+        };
+
+        // Optional: reverse geocode city name using Nominatim
+        try {
+          const fetch = require('node-fetch');
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+            { headers: { 'User-Agent': 'FoodDonationApp/1.0' } }
+          );
+          const geoData = await geoRes.json();
+          locationFields.city = geoData.address?.city ||
+            geoData.address?.town ||
+            geoData.address?.village ||
+            geoData.address?.county || '';
+        } catch (_) {
+          // Geocoding failure is non-fatal — continue without city
+        }
+      }
+
       // Get user from request if authenticated
       const userId = req.user ? req.user.id : null;
 
@@ -62,7 +103,8 @@ class DonationController {
           contentType: req.file.mimetype
         } : null,
         additionalInfo: additionalInfo ? additionalInfo.trim() : '',
-        userId: userId
+        userId: userId,
+        ...locationFields
       });
 
       await newDonation.save();

@@ -45,7 +45,7 @@ export default function ThirdScroll() {
             <div className="impact-item">
               <div className="impact-dot coral" />
               <div className="impact-text">
-                Neighbours nearby are notified and can claim your donation
+                Neighbours nearby can find your listing on the community feed
               </div>
             </div>
             <div className="impact-item">
