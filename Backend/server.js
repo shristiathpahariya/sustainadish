@@ -63,6 +63,9 @@ app.use(
     credentials: true,
   })
 );
+// ── ADD: HTTPS redirect in production ──
+app.use(require('./middleware/httpsRedirect'));
+
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
@@ -131,6 +134,9 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   try {
     await connectDB();
+    
+    // ── ADD: start expired location scrub job ──
+    require('./jobs/expiredLocationScrub').startScrubJob();
     
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);

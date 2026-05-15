@@ -1,6 +1,7 @@
 // src/index.js
 import React from 'react';
 import ReactDOM from 'react-dom';
+import './setupLeafletIcons';
 import { UserProvider } from './UserContext';
 import { MessageDialogProvider } from './context/MessageDialogContext';
 import App from './App';

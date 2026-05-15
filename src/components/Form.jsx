@@ -3,6 +3,9 @@ import { useUser } from "../UserContext";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../config";
 import { useMessageDialog } from "../context/MessageDialogContext";
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import useGeolocation from '../hooks/useGeolocation';
+import 'leaflet/dist/leaflet.css';
 import "../form.css";
 
 /** Matches Backend/routes/donationRoutes.js multer limit */
@@ -54,10 +57,21 @@ function extractApiError(err) {
   return "Something went wrong.";
 }
 
+function DraggableMarker({ position, onMove }) {
+  useMapEvents({
+    dragend(e) { onMove(e.target.getLatLng()); }
+  });
+  return position
+    ? <Marker position={position} draggable eventHandlers={{ dragend: (e) => onMove(e.target.getLatLng()) }} />
+    : null;
+}
+
 const Form = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const { notifySuccess, notifyError } = useMessageDialog();
+
+  const { coords, error: geoError, loading: geoLoading, consentGiven, requestLocation, recordConsent, permissionState, secureContextBlockedMessage } = useGeolocation();
 
   const [formData, setFormData] = useState({
     donatedBy: "",
@@ -71,6 +85,11 @@ const Form = () => {
   const [pictures, setPictures] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const navigateTimerRef = useRef(null);
+
+  const [markerPos, setMarkerPos] = useState(null);
+  const [areaText, setAreaText] = useState('');
+  /** Skip GPS: show landmark search only (Skip still records consent so logged-in submits can attach coords). */
+  const [preferTypedArea, setPreferTypedArea] = useState(false);
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -180,6 +199,13 @@ const Form = () => {
     setLoading(true);
     try {
       const formDataToSend = buildFormData(formData, pictures);
+
+      const finalPos = markerPos || coords;
+      if (finalPos) {
+        formDataToSend.append('lat', finalPos.lat);
+        formDataToSend.append('lng', finalPos.lng);
+      }
+
       const response = await apiClient.post("/messageForm", formDataToSend);
 
       const msg =
@@ -376,6 +402,158 @@ const Form = () => {
                 onChange={handleChange}
               />
               <p className="donation-form__hint">{formData.additionalInfo.length}/500</p>
+            </div>
+
+            {/* ── LOCATION BLOCK ── */}
+            <div className="location-section donation-form__field">
+              <label className="donation-form__section">Pickup on the map (optional)</label>
+              <p className="donation-form__hint">
+                You can drag a pin after GPS finds you, <strong>or</strong> type a suburb, street corner, or
+                landmark—we look it up once and store only a blurred (~300&nbsp;m) point, not your full
+                address. Leave blank if you prefer contact-only pickup.
+              </p>
+
+              {secureContextBlockedMessage ? (
+                <p className="donation-form__error" role="alert">
+                  {secureContextBlockedMessage}
+                </p>
+              ) : null}
+
+              {permissionState === 'denied' ? (
+                <p className="donation-form__error" role="alert">
+                  Your browser already has Location set to blocked for this site, so GPS will not prompt.
+                  Chrome/Edge: address bar lock → Permissions → Location → Allow, then reload. Use landmark search
+                  if you prefer not to change it.
+                </p>
+              ) : null}
+
+              {!consentGiven && !preferTypedArea ? (
+                <div className="consent-prompt">
+                  <p>
+                    If you share a pin, we need your okay first. Exact addresses are never stored or shown.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await recordConsent();
+                      requestLocation();
+                    }}
+                    disabled={Boolean(secureContextBlockedMessage)}
+                  >
+                    Share my location (show map)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await recordConsent();
+                      setPreferTypedArea(true);
+                      setAreaText('');
+                    }}
+                  >
+                    Skip GPS — search by landmark only
+                  </button>
+                </div>
+              ) : null}
+
+              {consentGiven && !preferTypedArea && geoLoading ? <p className="donation-form__hint">Getting your location…</p> : null}
+
+              {consentGiven && !preferTypedArea && !geoLoading && coords && !geoError ? (
+                <MapContainer
+                  center={[coords.lat, coords.lng]}
+                  zoom={15}
+                  style={{ height: '260px', borderRadius: '8px', marginTop: '0.5rem' }}
+                >
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <DraggableMarker
+                    position={markerPos || coords}
+                    onMove={(latlng) => setMarkerPos({ lat: latlng.lat, lng: latlng.lng })}
+                  />
+                </MapContainer>
+              ) : null}
+
+              {consentGiven &&
+              !preferTypedArea &&
+              !geoLoading &&
+              !coords &&
+              !geoError ? (
+                <div className="donation-location-chooser">
+                  <p className="donation-form__hint">
+                    This browser already has location consent (for example from &ldquo;Donations near
+                    me&rdquo;). Choose how you want to place this listing—GPS map or search-only.
+                  </p>
+                  <div className="donation-location-chooser__row">
+                    <button
+                      type="button"
+                      onClick={() => requestLocation()}
+                      disabled={Boolean(secureContextBlockedMessage)}
+                    >
+                      Load map using my location
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreferTypedArea(true);
+                        setAreaText('');
+                      }}
+                    >
+                      Skip map — search by landmark
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {preferTypedArea || geoError ? (
+                <div className="donation-location-search" style={{ marginTop: '0.75rem' }}>
+                  {geoError ? (
+                    <p className="donation-form__error" role="alert">
+                      {geoError}
+                    </p>
+                  ) : null}
+                  {preferTypedArea && !geoError ? (
+                    <p className="donation-form__hint">
+                      Type where pickup works for you (e.g. neighbourhood, station, plaza). Tap away from the box
+                      to look up the spot—then submit as usual &mdash; coords are fuzzed server-side.
+                    </p>
+                  ) : null}
+                  <label htmlFor="donation-area-search">Landmark / area lookup</label>
+                  <input
+                    id="donation-area-search"
+                    type="text"
+                    placeholder="e.g. Jorpati Chowk, your ward, nearest park…"
+                    value={areaText}
+                    onChange={(e) => setAreaText(e.target.value)}
+                    onBlur={async () => {
+                      if (!areaText.trim()) return;
+                      const r = await fetch(
+                        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(areaText.trim())}&format=json&limit=1`
+                      );
+                      const d = await r.json();
+                      if (d[0]) {
+                        setMarkerPos({ lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) });
+                      } else if (preferTypedArea) {
+                        notifyError('No matching place found. Try a spelling closer to maps or drag the pin after using GPS.', 'Area search');
+                      }
+                    }}
+                  />
+                  {markerPos ? (
+                    <p className="donation-form__hint" style={{ marginTop: '0.35rem' }}>
+                      Rough spot locked from your search—we&apos;ll send a blurred coordinate with the donation when you submit.
+                    </p>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="donation-form__btn donation-form__btn--ghost"
+                    style={{ marginTop: '0.5rem' }}
+                    onClick={() => {
+                      setPreferTypedArea(false);
+                      requestLocation();
+                    }}
+                    disabled={Boolean(secureContextBlockedMessage)}
+                  >
+                    Use GPS map instead
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             <div className="donation-form__actions">

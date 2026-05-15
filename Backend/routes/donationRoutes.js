@@ -4,6 +4,9 @@ const multer = require('multer');
 const authMiddleware = require('../middleware/authMiddleware');
 const optionalAuthMiddleware = authMiddleware.optionalAuthMiddleware;
 const DonationController = require('../controllers/donationController');
+const { donationLimiter } = require('../middleware/rateLimiter');
+const { z } = require('zod');
+const Donation = require('../models/Donation');
 
 /** Donation photos (phone camera JPEGs are often over 5MB) */
 const DONATION_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
@@ -31,6 +34,13 @@ const upload = multer({
   }
 });
 
+// ── ADD: coordinate validator schema ──
+const geoQuerySchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+  km: z.coerce.number().min(0.5).max(50).default(10),
+});
+
 const handleUpload = (req, res, next) => {
   upload.single('pictures')(req, res, (err) => {
     if (err) {
@@ -44,16 +54,53 @@ const handleUpload = (req, res, next) => {
   });
 };
 
-// Routes
+// Routes (+ `/feed/near` before `/feed` so `"near"` is never confused with sibling matching)
 router.post(
   '/messageForm',
   optionalAuthMiddleware,
   handleUpload,
   DonationController.createDonation
 );
+
+router.get('/feed/near', donationLimiter, async (req, res) => {
+  const parsed = geoQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ message: 'Invalid query parameters.', errors: parsed.error.flatten() });
+  }
+  const { lat, lng, km } = parsed.data;
+
+  try {
+    const donations = await Donation.find({
+      location: {
+        $nearSphere: {
+          $geometry: { type: 'Point', coordinates: [lng, lat] },
+          $maxDistance: km * 1000
+        }
+      },
+      status: 'available',
+      expiryDate: { $gte: new Date() }
+    })
+      .select('-location -pictures')
+      .limit(50)
+      .lean();
+
+    res.json(donations);
+  } catch (err) {
+    console.error('Nearby query failed:', err);
+    res.status(500).json({ message: 'Could not fetch nearby donations.' });
+  }
+});
+
 router.get('/feed', DonationController.getAllDonations);
 router.get('/user/donations', DonationController.getUserDonations);
 router.get('/donations/:id/image', DonationController.getDonationImage);
 router.delete('/donations/:id', authMiddleware, DonationController.deleteDonation);
+
+// ── ADD: record location consent for logged-in user ──
+router.post('/user/location-consent', authMiddleware, async (req, res) => {
+  const User = require('../models/User');
+  await User.findByIdAndUpdate(req.user.id, { locationConsentAt: new Date() });
+  res.json({ message: 'Consent recorded.' });
+});
 
 module.exports = router;

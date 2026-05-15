@@ -38,6 +38,8 @@ const userSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  // ── ADD: location consent tracking ──
+  locationConsentAt: { type: Date, default: null },
   profilePicture: {
     type: String,
     default: '/user.png'
