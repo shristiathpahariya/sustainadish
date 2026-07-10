@@ -30,6 +30,7 @@ MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrit
 JWT_SECRET=<your-secure-jwt-secret>
 PORT=3000
 NODE_ENV=production
+ML_API_URL=https://your-ml-service.onrender.com
 ```
 
 ## Step 2: Generate Secure JWT Secret
@@ -92,7 +93,9 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
      JWT_SECRET=your_secure_jwt_secret
      PORT=3000
      NODE_ENV=production
+     ML_API_URL=https://your-ml-service.onrender.com
      ```
+     `ML_API_URL` is required for **landing recipe picks** (`GET /api/landing/recipe-picks`): the Node server calls your Flask service from the backend. Match the same base URL you use for `VITE_ML_API_URL` on the frontend.
 
 4. **Deploy**
    - Click "Create Web Service"
